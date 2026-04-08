@@ -1,4 +1,8 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
+import {
+  ProtectedRoute,
+  PublicOnlyRoute,
+} from './features/auth/AuthRouteGate'
 import { AppShell } from './layouts/AppShell'
 import { AuthLayout } from './layouts/AuthLayout'
 import { LoginPage } from './pages/auth/LoginPage'
@@ -12,25 +16,35 @@ export const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: <AuthLayout />,
+    element: <PublicOnlyRoute />,
     children: [
       {
-        path: 'login',
-        element: <LoginPage />,
-      },
-      {
-        path: 'register',
-        element: <RegisterPage />,
+        element: <AuthLayout />,
+        children: [
+          {
+            path: 'login',
+            element: <LoginPage />,
+          },
+          {
+            path: 'register',
+            element: <RegisterPage />,
+          },
+        ],
       },
     ],
   },
   {
     path: '/',
-    element: <AppShell />,
+    element: <ProtectedRoute />,
     children: [
       {
-        path: 'projects',
-        element: <ProjectsPage />,
+        element: <AppShell />,
+        children: [
+          {
+            path: 'projects',
+            element: <ProjectsPage />,
+          },
+        ],
       },
     ],
   },

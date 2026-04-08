@@ -1,21 +1,27 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ApiError } from '../../api/client'
 import {
   type FieldErrors,
   type LoginFormValues,
   validateLoginForm,
 } from '../../features/auth/forms'
+import { useAuth } from '../../hooks/useAuth'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [values, setValues] = useState<LoginFormValues>({
     email: '',
     password: '',
   })
   const [errors, setErrors] = useState<FieldErrors<LoginFormValues>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   function handleChange(field: keyof LoginFormValues, value: string) {
+    setSubmitError(null)
     setValues((current) => ({
       ...current,
       [field]: value,
@@ -38,17 +44,30 @@ export function LoginPage() {
     })
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const nextErrors = validateLoginForm(values)
     setErrors(nextErrors)
+    setSubmitError(null)
 
     if (Object.keys(nextErrors).length > 0) {
       return
     }
 
-    navigate('/projects')
+    try {
+      setIsSubmitting(true)
+      await login(values)
+      navigate('/projects')
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setSubmitError(error.message)
+      } else {
+        setSubmitError('Der Login ist fehlgeschlagen. Bitte versuche es erneut.')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -102,7 +121,7 @@ export function LoginPage() {
             }
           />
           <span className="field__hint" id="login-password-hint">
-            Im naechsten Commit wird dieses Formular direkt an `/auth/login` angebunden.
+            Dein Zugang wird gegen das Backend authentifiziert und danach direkt geladen.
           </span>
           {errors.password ? (
             <span className="field__error" id="login-password-error" role="alert">
@@ -111,12 +130,18 @@ export function LoginPage() {
           ) : null}
         </div>
 
+        {submitError ? (
+          <div className="form-feedback form-feedback--error" role="alert">
+            {submitError}
+          </div>
+        ) : null}
+
         <div className="auth-card__actions">
-          <button className="button button--primary" type="submit">
-            Einloggen
+          <button className="button button--primary" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Melde an...' : 'Einloggen'}
           </button>
           <p className="auth-note">
-            Nach erfolgreicher Validierung geht es direkt in die Projektansicht.
+            Nach erfolgreichem Login laden wir dein Profil und leiten in die Projekte weiter.
           </p>
         </div>
       </form>

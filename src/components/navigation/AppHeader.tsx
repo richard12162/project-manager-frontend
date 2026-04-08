@@ -1,6 +1,16 @@
+import { useNavigate } from 'react-router-dom'
 import { ShellNavLink } from '../../layouts/AppShell'
+import { useAuth } from '../../hooks/useAuth'
 
 export function AppHeader() {
+  const navigate = useNavigate()
+  const { currentUser, logout } = useAuth()
+
+  function handleLogout() {
+    logout()
+    navigate('/login')
+  }
+
   return (
     <header className="topbar">
       <div className="container topbar__inner">
@@ -14,8 +24,14 @@ export function AppHeader() {
 
         <nav className="topbar__nav" aria-label="Hauptnavigation">
           <ShellNavLink to="/projects">Projects</ShellNavLink>
-          <ShellNavLink to="/login">Login</ShellNavLink>
-          <ShellNavLink to="/register">Register</ShellNavLink>
+          {currentUser?.email ? (
+            <span className="topbar__user" title={currentUser.email}>
+              {currentUser.email}
+            </span>
+          ) : null}
+          <button className="button button--ghost" type="button" onClick={handleLogout}>
+            Logout
+          </button>
         </nav>
       </div>
     </header>

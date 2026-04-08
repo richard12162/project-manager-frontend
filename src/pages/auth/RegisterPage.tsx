@@ -1,22 +1,28 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ApiError } from '../../api/client'
 import {
   type FieldErrors,
   type RegisterFormValues,
   validateRegisterForm,
 } from '../../features/auth/forms'
+import { useAuth } from '../../hooks/useAuth'
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const { register } = useAuth()
   const [values, setValues] = useState<RegisterFormValues>({
     email: '',
     password: '',
     confirmPassword: '',
   })
   const [errors, setErrors] = useState<FieldErrors<RegisterFormValues>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   function handleChange(field: keyof RegisterFormValues, value: string) {
+    setSubmitError(null)
     setValues((current) => ({
       ...current,
       [field]: value,
@@ -41,17 +47,33 @@ export function RegisterPage() {
     })
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const nextErrors = validateRegisterForm(values)
     setErrors(nextErrors)
+    setSubmitError(null)
 
     if (Object.keys(nextErrors).length > 0) {
       return
     }
 
-    navigate('/projects')
+    try {
+      setIsSubmitting(true)
+      await register({
+        email: values.email,
+        password: values.password,
+      })
+      navigate('/projects')
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setSubmitError(error.message)
+      } else {
+        setSubmitError('Die Registrierung ist fehlgeschlagen. Bitte versuche es erneut.')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -139,7 +161,7 @@ export function RegisterPage() {
               }
             />
             <span className="field__hint" id="register-confirm-password-hint">
-              So vermeiden wir Tippfehler, bevor die API-Anbindung folgt.
+              So vermeiden wir Tippfehler, bevor dein Zugang im Backend angelegt wird.
             </span>
             {errors.confirmPassword ? (
               <span
@@ -153,12 +175,18 @@ export function RegisterPage() {
           </div>
         </div>
 
+        {submitError ? (
+          <div className="form-feedback form-feedback--error" role="alert">
+            {submitError}
+          </div>
+        ) : null}
+
         <div className="auth-card__actions">
-          <button className="button button--primary" type="submit">
-            Konto erstellen
+          <button className="button button--primary" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Erstelle Konto...' : 'Konto erstellen'}
           </button>
           <p className="auth-note">
-            Nach erfolgreicher Validierung fuehren wir direkt in die Produktflaeche.
+            Nach erfolgreicher Registrierung melden wir dich direkt an.
           </p>
         </div>
       </form>
