@@ -270,13 +270,31 @@ img {
   color: var(--text);
 }
 
-.field input:focus {
+.field textarea {
+  width: 100%;
+  min-height: 112px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  color: var(--text);
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
   outline: 2px solid rgba(31, 41, 55, 0.12);
   outline-offset: 1px;
   border-color: rgba(31, 41, 55, 0.22);
 }
 
-.field--invalid input:focus {
+.field--invalid input,
+.field--invalid textarea {
+  border-color: rgba(180, 35, 24, 0.38);
+}
+
+.field--invalid input:focus,
+.field--invalid textarea:focus {
   outline-color: rgba(180, 35, 24, 0.12);
   border-color: rgba(180, 35, 24, 0.44);
 }
@@ -454,6 +472,17 @@ img {
 
 .projects-sidebar__section {
   display: grid;
+  gap: 10px;
+}
+
+.project-create-trigger,
+.project-create-actions {
+  width: 100%;
+}
+
+.project-create-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
 }
 

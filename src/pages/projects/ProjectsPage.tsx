@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../../api/client'
-import { getMyProjects, type ProjectResponse } from '../../api/projects'
+import {
+  createProject,
+  getMyProjects,
+  type CreateProjectRequest,
+  type ProjectResponse,
+} from '../../api/projects'
 import { useAuth } from '../../hooks/useAuth'
 import { formatDateTime } from '../../utils/date'
 
@@ -9,6 +14,14 @@ export function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [createValues, setCreateValues] = useState<CreateProjectRequest>({
+    name: '',
+    description: '',
+  })
+  const [createErrors, setCreateErrors] = useState<Partial<Record<keyof CreateProjectRequest, string>>>({})
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
 
   useEffect(() => {
     if (!token) {
@@ -79,6 +92,80 @@ export function ProjectsPage() {
       })
   }
 
+  function handleCreateChange(
+    field: keyof CreateProjectRequest,
+    value: string,
+  ) {
+    setCreateError(null)
+    setCreateValues((current) => ({
+      ...current,
+      [field]: value,
+    }))
+
+    setCreateErrors((current) => ({
+      ...current,
+      [field]: undefined,
+    }))
+  }
+
+  function validateCreateForm(values: CreateProjectRequest) {
+    const nextErrors: Partial<Record<keyof CreateProjectRequest, string>> = {}
+
+    if (!values.name.trim()) {
+      nextErrors.name = 'Bitte gib einen Projektnamen ein.'
+    } else if (values.name.trim().length < 3) {
+      nextErrors.name = 'Der Projektname sollte mindestens 3 Zeichen lang sein.'
+    }
+
+    if (values.description && values.description.length > 500) {
+      nextErrors.description =
+        'Die Beschreibung darf hoechstens 500 Zeichen lang sein.'
+    }
+
+    return nextErrors
+  }
+
+  async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!token) {
+      return
+    }
+
+    const payload: CreateProjectRequest = {
+      name: createValues.name.trim(),
+      description: createValues.description?.trim() || undefined,
+    }
+
+    const nextErrors = validateCreateForm(payload)
+    setCreateErrors(nextErrors)
+    setCreateError(null)
+
+    if (Object.keys(nextErrors).length > 0) {
+      return
+    }
+
+    try {
+      setIsCreating(true)
+      const createdProject = await createProject(token, payload)
+      setProjects((current) => [createdProject, ...current])
+      setCreateValues({
+        name: '',
+        description: '',
+      })
+      setCreateErrors({})
+      setIsCreateOpen(false)
+    } catch (submissionError) {
+      if (submissionError instanceof ApiError) {
+        setCreateError(submissionError.message)
+      } else {
+        setCreateError('Das Projekt konnte nicht erstellt werden.')
+      }
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
   return (
     <section className="content-card">
       <div className="content-card__header split-header">
@@ -92,13 +179,109 @@ export function ProjectsPage() {
           </p>
         </div>
 
-        <button className="button button--secondary" type="button" disabled>
-          Neues Projekt
+        <button
+          className="button button--secondary"
+          type="button"
+          onClick={() => {
+            setIsCreateOpen((current) => !current)
+            setCreateError(null)
+          }}
+        >
+          {isCreateOpen ? 'Formular schliessen' : 'Neues Projekt'}
         </button>
       </div>
 
       <div className="projects-layout">
         <aside className="projects-sidebar">
+          <div className="projects-sidebar__section">
+            <h2>Neues Projekt</h2>
+            <p>
+              Lege direkt von hier ein Projekt an und starte danach mit Tasks,
+              Team und Aktivitaeten.
+            </p>
+
+            {isCreateOpen ? (
+              <form className="form-stack" noValidate onSubmit={handleCreateSubmit}>
+                <div className={`field${createErrors.name ? ' field--invalid' : ''}`}>
+                  <label htmlFor="project-name">Projektname</label>
+                  <input
+                    id="project-name"
+                    name="name"
+                    type="text"
+                    placeholder="z. B. Website Relaunch"
+                    value={createValues.name}
+                    onChange={(event) =>
+                      handleCreateChange('name', event.target.value)
+                    }
+                    aria-invalid={Boolean(createErrors.name)}
+                  />
+                  {createErrors.name ? (
+                    <span className="field__error" role="alert">
+                      {createErrors.name}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div
+                  className={`field${createErrors.description ? ' field--invalid' : ''}`}
+                >
+                  <label htmlFor="project-description">Beschreibung</label>
+                  <textarea
+                    id="project-description"
+                    name="description"
+                    rows={4}
+                    placeholder="Kurz beschreiben, worum es in diesem Projekt geht."
+                    value={createValues.description ?? ''}
+                    onChange={(event) =>
+                      handleCreateChange('description', event.target.value)
+                    }
+                    aria-invalid={Boolean(createErrors.description)}
+                  />
+                  <span className="field__hint">
+                    Optional, aber hilfreich fuer den ersten gemeinsamen Kontext.
+                  </span>
+                  {createErrors.description ? (
+                    <span className="field__error" role="alert">
+                      {createErrors.description}
+                    </span>
+                  ) : null}
+                </div>
+
+                {createError ? (
+                  <div className="form-feedback form-feedback--error" role="alert">
+                    {createError}
+                  </div>
+                ) : null}
+
+                <div className="project-create-actions">
+                  <button className="button button--primary" type="submit" disabled={isCreating}>
+                    {isCreating ? 'Erstelle Projekt...' : 'Projekt erstellen'}
+                  </button>
+                  <button
+                    className="button button--ghost"
+                    type="button"
+                    onClick={() => {
+                      setIsCreateOpen(false)
+                      setCreateError(null)
+                      setCreateErrors({})
+                    }}
+                    disabled={isCreating}
+                  >
+                    Abbrechen
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                className="button button--secondary project-create-trigger"
+                type="button"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                Projekt anlegen
+              </button>
+            )}
+          </div>
+
           <div className="projects-sidebar__section">
             <h2>Uebersicht</h2>
             <p>Dein Arbeitsbereich startet direkt mit der echten Projektliste.</p>
@@ -114,6 +297,10 @@ export function ProjectsPage() {
               <div>
                 <dt>Ansicht</dt>
                 <dd>{isLoading ? 'Laedt' : error ? 'Fehler' : 'Bereit'}</dd>
+              </div>
+              <div>
+                <dt>Erstellung</dt>
+                <dd>{isCreating ? 'Sendet' : isCreateOpen ? 'Offen' : 'Bereit'}</dd>
               </div>
             </dl>
           </div>
