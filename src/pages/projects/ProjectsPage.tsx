@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ApiError } from '../../api/client'
 import {
   createProject,
@@ -358,6 +359,17 @@ export function ProjectsPage() {
                       <dd>{formatDateTime(project.updatedAt)}</dd>
                     </div>
                   </dl>
+
+                  {project.id ? (
+                    <div className="project-card__actions">
+                      <Link
+                        className="button button--ghost"
+                        to={`/projects/${project.id}/tasks`}
+                      >
+                        Projekt oeffnen
+                      </Link>
+                    </div>
+                  ) : null}
                 </article>
               ))}
             </div>

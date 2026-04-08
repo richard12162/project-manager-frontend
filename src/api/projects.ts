@@ -10,6 +10,12 @@ export function getMyProjects(token: string) {
   })
 }
 
+export function getProjectById(token: string, projectId: string) {
+  return apiRequest<ProjectResponse>(`/projects/${projectId}`, {
+    token,
+  })
+}
+
 export function createProject(token: string, payload: CreateProjectRequest) {
   return apiRequest<ProjectResponse>('/projects', {
     method: 'POST',
