@@ -52,5 +52,19 @@ export async function apiRequest<TResponse>(
     throw new ApiError(message, response.status)
   }
 
-  return (await response.json()) as TResponse
+  if (response.status === 204) {
+    return undefined as TResponse
+  }
+
+  const contentLength = response.headers.get('content-length')
+  if (contentLength === '0') {
+    return undefined as TResponse
+  }
+
+  const responseText = await response.text()
+  if (!responseText) {
+    return undefined as TResponse
+  }
+
+  return JSON.parse(responseText) as TResponse
 }

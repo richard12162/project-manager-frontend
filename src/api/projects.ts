@@ -6,10 +6,13 @@ export type ProjectResponse = components['schemas']['ProjectResponse']
 export type ProjectMemberResponse = components['schemas']['ProjectMemberResponse']
 export type CreateTaskRequest = components['schemas']['CreateTaskRequest']
 export type TaskResponse = components['schemas']['TaskResponse']
+export type CreateCommentRequest = components['schemas']['CreateCommentRequest']
+export type CommentResponse = components['schemas']['CommentResponse']
 export type UpdateTaskRequest = components['schemas']['UpdateTaskRequest']
 export type UpdateTaskStatusRequest = components['schemas']['UpdateTaskStatusRequest']
 export type UpdateTaskAssignmentRequest =
   components['schemas']['UpdateTaskAssignmentRequest']
+export type UpdateCommentRequest = components['schemas']['UpdateCommentRequest']
 export type TaskStatus = UpdateTaskStatusRequest['status']
 export type TaskPriority = NonNullable<
   operations['getTasksByProject']['parameters']['query']
@@ -115,5 +118,42 @@ export function updateProjectTaskAssignment(
     method: 'PATCH',
     token,
     body: payload,
+  })
+}
+
+export function getTaskComments(token: string, taskId: string) {
+  return apiRequest<CommentResponse[]>(`/tasks/${taskId}/comments`, {
+    token,
+  })
+}
+
+export function createTaskComment(
+  token: string,
+  taskId: string,
+  payload: CreateCommentRequest,
+) {
+  return apiRequest<CommentResponse>(`/tasks/${taskId}/comments`, {
+    method: 'POST',
+    token,
+    body: payload,
+  })
+}
+
+export function updateTaskComment(
+  token: string,
+  commentId: string,
+  payload: UpdateCommentRequest,
+) {
+  return apiRequest<CommentResponse>(`/comments/${commentId}`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  })
+}
+
+export function deleteTaskComment(token: string, commentId: string) {
+  return apiRequest<void>(`/comments/${commentId}`, {
+    method: 'DELETE',
+    token,
   })
 }

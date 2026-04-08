@@ -4,14 +4,19 @@ import { useOutletContext } from 'react-router-dom'
 import { ApiError } from '../../api/client'
 import {
   createProjectTask,
+  createTaskComment,
+  deleteTaskComment,
   getProjectMembers,
   getProjectTasks,
+  getTaskComments,
+  type CommentResponse,
   type CreateTaskRequest,
   type ProjectMemberResponse,
   type ProjectResponse,
   type TaskPriority,
   type TaskResponse,
   type TaskStatus,
+  updateTaskComment,
   updateProjectTask,
   updateProjectTaskAssignment,
   updateProjectTaskStatus,
@@ -53,6 +58,8 @@ type TaskFormValues = {
 }
 
 type TaskFormErrors = Partial<Record<keyof TaskFormValues, string>>
+type CommentDrafts = Record<string, string>
+type CommentCollections = Record<string, CommentResponse[]>
 
 export function ProjectTasksPage() {
   const { token } = useAuth()
@@ -77,6 +84,14 @@ export function ProjectTasksPage() {
   const [taskActionError, setTaskActionError] = useState<string | null>(null)
   const [statusUpdatingTaskId, setStatusUpdatingTaskId] = useState<string | null>(null)
   const [assignmentUpdatingTaskId, setAssignmentUpdatingTaskId] = useState<string | null>(null)
+  const [commentsByTaskId, setCommentsByTaskId] = useState<CommentCollections>({})
+  const [expandedTaskIds, setExpandedTaskIds] = useState<string[]>([])
+  const [loadingCommentsTaskId, setLoadingCommentsTaskId] = useState<string | null>(null)
+  const [commentDrafts, setCommentDrafts] = useState<CommentDrafts>({})
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [submittingCommentTaskId, setSubmittingCommentTaskId] = useState<string | null>(null)
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
+  const [commentError, setCommentError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token || !project.id) {
@@ -322,6 +337,148 @@ export function ProjectTasksPage() {
       }
     } finally {
       setAssignmentUpdatingTaskId(null)
+    }
+  }
+
+  async function handleToggleComments(taskId: string) {
+    const isExpanded = expandedTaskIds.includes(taskId)
+
+    if (isExpanded) {
+      setExpandedTaskIds((current) => current.filter((id) => id !== taskId))
+      return
+    }
+
+    setExpandedTaskIds((current) => [...current, taskId])
+    setCommentError(null)
+
+    if (commentsByTaskId[taskId]) {
+      return
+    }
+
+    if (!token) {
+      return
+    }
+
+    try {
+      setLoadingCommentsTaskId(taskId)
+      const comments = await getTaskComments(token, taskId)
+      setCommentsByTaskId((current) => ({
+        ...current,
+        [taskId]: comments,
+      }))
+    } catch (submissionError) {
+      if (submissionError instanceof ApiError) {
+        setCommentError(submissionError.message)
+      } else {
+        setCommentError('Die Kommentare konnten nicht geladen werden.')
+      }
+    } finally {
+      setLoadingCommentsTaskId(null)
+    }
+  }
+
+  function handleCommentDraftChange(taskId: string, value: string) {
+    setCommentError(null)
+    setCommentDrafts((current) => ({
+      ...current,
+      [taskId]: value,
+    }))
+  }
+
+  function startCommentEdit(taskId: string, comment: CommentResponse) {
+    if (!comment.id) {
+      return
+    }
+
+    setEditingCommentId(comment.id)
+    setCommentDrafts((current) => ({
+      ...current,
+      [taskId]: comment.content ?? '',
+    }))
+  }
+
+  function cancelCommentEdit(taskId: string) {
+    setEditingCommentId(null)
+    setCommentDrafts((current) => ({
+      ...current,
+      [taskId]: '',
+    }))
+  }
+
+  async function handleCommentSubmit(taskId: string) {
+    if (!token) {
+      return
+    }
+
+    const content = commentDrafts[taskId]?.trim() ?? ''
+    if (!content) {
+      setCommentError('Bitte gib einen Kommentarinhalt ein.')
+      return
+    }
+
+    try {
+      setCommentError(null)
+      setSubmittingCommentTaskId(taskId)
+
+      if (editingCommentId) {
+        const updatedComment = await updateTaskComment(token, editingCommentId, {
+          content,
+        })
+
+        setCommentsByTaskId((current) => ({
+          ...current,
+          [taskId]: (current[taskId] ?? []).map((comment) =>
+            comment.id === updatedComment.id ? updatedComment : comment,
+          ),
+        }))
+      } else {
+        const createdComment = await createTaskComment(token, taskId, { content })
+        setCommentsByTaskId((current) => ({
+          ...current,
+          [taskId]: [createdComment, ...(current[taskId] ?? [])],
+        }))
+      }
+
+      setCommentDrafts((current) => ({
+        ...current,
+        [taskId]: '',
+      }))
+      setEditingCommentId(null)
+    } catch (submissionError) {
+      if (submissionError instanceof ApiError) {
+        setCommentError(submissionError.message)
+      } else {
+        setCommentError('Der Kommentar konnte nicht gespeichert werden.')
+      }
+    } finally {
+      setSubmittingCommentTaskId(null)
+    }
+  }
+
+  async function handleCommentDelete(taskId: string, commentId: string) {
+    if (!token) {
+      return
+    }
+
+    try {
+      setCommentError(null)
+      setDeletingCommentId(commentId)
+      await deleteTaskComment(token, commentId)
+      setCommentsByTaskId((current) => ({
+        ...current,
+        [taskId]: (current[taskId] ?? []).filter((comment) => comment.id !== commentId),
+      }))
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null)
+      }
+    } catch (submissionError) {
+      if (submissionError instanceof ApiError) {
+        setCommentError(submissionError.message)
+      } else {
+        setCommentError('Der Kommentar konnte nicht geloescht werden.')
+      }
+    } finally {
+      setDeletingCommentId(null)
     }
   }
 
@@ -603,10 +760,125 @@ export function ProjectTasksPage() {
                   <button
                     className="button button--ghost"
                     type="button"
+                    onClick={() => handleToggleComments(task.id!)}
+                  >
+                    {expandedTaskIds.includes(task.id)
+                      ? 'Kommentare ausblenden'
+                      : 'Kommentare'}
+                  </button>
+                  <button
+                    className="button button--ghost"
+                    type="button"
                     onClick={() => openEditForm(task)}
                   >
                     Bearbeiten
                   </button>
+                </div>
+              ) : null}
+
+              {task.id && expandedTaskIds.includes(task.id) ? (
+                <div className="comments-panel">
+                  <div className="comments-panel__header">
+                    <h3>Kommentare</h3>
+                    <span>{(commentsByTaskId[task.id] ?? []).length} Eintraege</span>
+                  </div>
+
+                  {commentError ? (
+                    <div className="form-feedback form-feedback--error" role="alert">
+                      {commentError}
+                    </div>
+                  ) : null}
+
+                  {loadingCommentsTaskId === task.id ? (
+                    <div className="comments-empty-state">
+                      <p>Kommentare werden geladen...</p>
+                    </div>
+                  ) : null}
+
+                  {loadingCommentsTaskId !== task.id &&
+                  (commentsByTaskId[task.id] ?? []).length === 0 ? (
+                    <div className="comments-empty-state">
+                      <p>Noch keine Kommentare vorhanden.</p>
+                    </div>
+                  ) : null}
+
+                  {loadingCommentsTaskId !== task.id &&
+                  (commentsByTaskId[task.id] ?? []).length > 0 ? (
+                    <div className="comment-list">
+                      {(commentsByTaskId[task.id] ?? []).map((comment) => (
+                        <article className="comment-card" key={comment.id ?? comment.createdAt}>
+                          <div className="comment-card__header">
+                            <div>
+                              <strong>{comment.authorEmail ?? 'Unbekannter Autor'}</strong>
+                              <p>{formatDateTime(comment.updatedAt ?? comment.createdAt)}</p>
+                            </div>
+                            {comment.id ? (
+                              <div className="comment-card__actions">
+                                <button
+                                  className="button button--ghost"
+                                  type="button"
+                                  onClick={() => startCommentEdit(task.id!, comment)}
+                                >
+                                  Bearbeiten
+                                </button>
+                                <button
+                                  className="button button--ghost"
+                                  type="button"
+                                  onClick={() =>
+                                    handleCommentDelete(task.id!, comment.id!)
+                                  }
+                                  disabled={deletingCommentId === comment.id}
+                                >
+                                  {deletingCommentId === comment.id
+                                    ? 'Loesche...'
+                                    : 'Loeschen'}
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                          <p>{comment.content ?? ''}</p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="comment-composer">
+                    <label htmlFor={`comment-draft-${task.id}`}>
+                      {editingCommentId ? 'Kommentar bearbeiten' : 'Neuen Kommentar schreiben'}
+                    </label>
+                    <textarea
+                      id={`comment-draft-${task.id}`}
+                      rows={4}
+                      placeholder="Rueckfragen, Kontext oder Update zur Aufgabe festhalten."
+                      value={commentDrafts[task.id] ?? ''}
+                      onChange={(event) =>
+                        handleCommentDraftChange(task.id!, event.target.value)
+                      }
+                    />
+                    <div className="comment-composer__actions">
+                      <button
+                        className="button button--primary"
+                        type="button"
+                        onClick={() => handleCommentSubmit(task.id!)}
+                        disabled={submittingCommentTaskId === task.id}
+                      >
+                        {submittingCommentTaskId === task.id
+                          ? 'Speichere Kommentar...'
+                          : editingCommentId
+                            ? 'Kommentar speichern'
+                            : 'Kommentar erstellen'}
+                      </button>
+                      {editingCommentId ? (
+                        <button
+                          className="button button--ghost"
+                          type="button"
+                          onClick={() => cancelCommentEdit(task.id!)}
+                        >
+                          Abbrechen
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </article>

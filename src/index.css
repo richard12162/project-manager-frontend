@@ -706,6 +706,82 @@ img {
   gap: 16px;
 }
 
+.comments-panel {
+  display: grid;
+  gap: 16px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.comments-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comments-panel__header h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.comments-panel__header span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.comments-empty-state {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+}
+
+.comment-list {
+  display: grid;
+  gap: 12px;
+}
+
+.comment-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+}
+
+.comment-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comment-card__header strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.comment-card__header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.comment-card__actions,
+.comment-composer__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.comment-composer {
+  display: grid;
+  gap: 10px;
+}
+
 .task-list {
   display: grid;
   gap: 16px;
@@ -833,7 +909,9 @@ img {
   .topbar__inner,
   .split-header,
   .project-card__header,
-  .task-card__heading {
+  .task-card__heading,
+  .comment-card__header,
+  .comments-panel__header {
     align-items: flex-start;
     flex-direction: column;
   }
