@@ -3,7 +3,9 @@ import type { components, operations } from '../types/api'
 
 export type CreateProjectRequest = components['schemas']['CreateProjectRequest']
 export type ProjectResponse = components['schemas']['ProjectResponse']
+export type CreateTaskRequest = components['schemas']['CreateTaskRequest']
 export type TaskResponse = components['schemas']['TaskResponse']
+export type UpdateTaskRequest = components['schemas']['UpdateTaskRequest']
 export type TaskStatus = NonNullable<
   operations['getTasksByProject']['parameters']['query']
 >['status']
@@ -58,4 +60,28 @@ export function getProjectTasks(
       token,
     },
   )
+}
+
+export function createProjectTask(
+  token: string,
+  projectId: string,
+  payload: CreateTaskRequest,
+) {
+  return apiRequest<TaskResponse>(`/projects/${projectId}/tasks`, {
+    method: 'POST',
+    token,
+    body: payload,
+  })
+}
+
+export function updateProjectTask(
+  token: string,
+  taskId: string,
+  payload: UpdateTaskRequest,
+) {
+  return apiRequest<TaskResponse>(`/tasks/${taskId}`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  })
 }

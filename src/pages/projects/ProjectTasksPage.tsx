@@ -1,12 +1,16 @@
+import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { ApiError } from '../../api/client'
 import {
+  createProjectTask,
   getProjectTasks,
+  type CreateTaskRequest,
   type ProjectResponse,
   type TaskPriority,
   type TaskResponse,
   type TaskStatus,
+  updateProjectTask,
 } from '../../api/projects'
 import { useAuth } from '../../hooks/useAuth'
 import { formatDateTime } from '../../utils/date'
@@ -27,6 +31,25 @@ const PRIORITY_OPTIONS: Array<{ label: string; value: TaskPriority | 'ALL' }> = 
   { label: 'Urgent', value: 'URGENT' },
 ]
 
+const TASK_FORM_PRIORITY_OPTIONS: Array<{
+  label: string
+  value: NonNullable<CreateTaskRequest['priority']>
+}> = [
+  { label: 'Low', value: 'LOW' },
+  { label: 'Medium', value: 'MEDIUM' },
+  { label: 'High', value: 'HIGH' },
+  { label: 'Urgent', value: 'URGENT' },
+]
+
+type TaskFormValues = {
+  title: string
+  description: string
+  priority: NonNullable<CreateTaskRequest['priority']>
+  dueDate: string
+}
+
+type TaskFormErrors = Partial<Record<keyof TaskFormValues, string>>
+
 export function ProjectTasksPage() {
   const { token } = useAuth()
   const { project } = useOutletContext<{ project: ProjectResponse }>()
@@ -35,6 +58,17 @@ export function ProjectTasksPage() {
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>('ALL')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'ALL'>('ALL')
+  const [isComposerOpen, setIsComposerOpen] = useState(false)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [formValues, setFormValues] = useState<TaskFormValues>({
+    title: '',
+    description: '',
+    priority: 'MEDIUM',
+    dueDate: '',
+  })
+  const [formErrors, setFormErrors] = useState<TaskFormErrors>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (!token || !project.id) {
@@ -86,6 +120,121 @@ export function ProjectTasksPage() {
     }
   }, [priorityFilter, project.id, statusFilter, token])
 
+  function handleFormChange(field: keyof TaskFormValues, value: string) {
+    setFormError(null)
+    setFormValues((current) => ({
+      ...current,
+      [field]: value,
+    }))
+
+    setFormErrors((current) => ({
+      ...current,
+      [field]: undefined,
+    }))
+  }
+
+  function openCreateForm() {
+    setEditingTaskId(null)
+    setFormError(null)
+    setFormErrors({})
+    setFormValues({
+      title: '',
+      description: '',
+      priority: 'MEDIUM',
+      dueDate: '',
+    })
+    setIsComposerOpen(true)
+  }
+
+  function openEditForm(task: TaskResponse) {
+    setEditingTaskId(task.id ?? null)
+    setFormError(null)
+    setFormErrors({})
+    setFormValues({
+      title: task.title ?? '',
+      description: task.description ?? '',
+      priority: normalizeTaskPriority(task.priority),
+      dueDate: normalizeDateInput(task.dueDate),
+    })
+    setIsComposerOpen(true)
+  }
+
+  function closeForm() {
+    setIsComposerOpen(false)
+    setEditingTaskId(null)
+    setFormError(null)
+    setFormErrors({})
+  }
+
+  function validateTaskForm(values: TaskFormValues) {
+    const nextErrors: TaskFormErrors = {}
+
+    if (!values.title.trim()) {
+      nextErrors.title = 'Bitte gib einen Task-Titel ein.'
+    } else if (values.title.trim().length < 3) {
+      nextErrors.title = 'Der Task-Titel sollte mindestens 3 Zeichen lang sein.'
+    }
+
+    if (values.description.length > 1000) {
+      nextErrors.description =
+        'Die Beschreibung darf hoechstens 1000 Zeichen lang sein.'
+    }
+
+    return nextErrors
+  }
+
+  async function handleTaskSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!token || !project.id) {
+      return
+    }
+
+    const nextErrors = validateTaskForm(formValues)
+    setFormErrors(nextErrors)
+    setFormError(null)
+
+    if (Object.keys(nextErrors).length > 0) {
+      return
+    }
+
+    const payload = {
+      title: formValues.title.trim(),
+      description: formValues.description.trim() || undefined,
+      priority: formValues.priority,
+      dueDate: formValues.dueDate ? new Date(formValues.dueDate).toISOString() : undefined,
+    }
+
+    try {
+      setIsSubmitting(true)
+
+      const savedTask =
+        editingTaskId
+          ? await updateProjectTask(token, editingTaskId, payload)
+          : await createProjectTask(token, project.id, payload)
+
+      setTasks((current) => {
+        if (editingTaskId) {
+          return current.map((task) =>
+            task.id === savedTask.id ? savedTask : task,
+          )
+        }
+
+        return [savedTask, ...current]
+      })
+
+      closeForm()
+    } catch (submissionError) {
+      if (submissionError instanceof ApiError) {
+        setFormError(submissionError.message)
+      } else {
+        setFormError('Die Task konnte nicht gespeichert werden.')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <section className="content-card">
       <div className="content-card__header">
@@ -96,6 +245,122 @@ export function ProjectTasksPage() {
           Filtern fuer Status und Prioritaet.
         </p>
       </div>
+
+      <div className="tasks-header-actions">
+        <button
+          className="button button--secondary"
+          type="button"
+          onClick={() => {
+            if (isComposerOpen) {
+              closeForm()
+            } else {
+              openCreateForm()
+            }
+          }}
+        >
+          {isComposerOpen ? 'Formular schliessen' : 'Neue Task'}
+        </button>
+      </div>
+
+      {isComposerOpen ? (
+        <form className="task-form" noValidate onSubmit={handleTaskSubmit}>
+          <div className={`field${formErrors.title ? ' field--invalid' : ''}`}>
+            <label htmlFor="task-title">Titel</label>
+            <input
+              id="task-title"
+              name="title"
+              type="text"
+              placeholder="z. B. Kickoff mit dem Team vorbereiten"
+              value={formValues.title}
+              onChange={(event) => handleFormChange('title', event.target.value)}
+              aria-invalid={Boolean(formErrors.title)}
+            />
+            {formErrors.title ? (
+              <span className="field__error" role="alert">
+                {formErrors.title}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="task-form__grid">
+            <div className="field">
+              <label htmlFor="task-priority">Prioritaet</label>
+              <select
+                id="task-priority"
+                name="priority"
+                value={formValues.priority}
+                onChange={(event) => handleFormChange('priority', event.target.value)}
+              >
+                {TASK_FORM_PRIORITY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="task-due-date">Faelligkeit</label>
+              <input
+                id="task-due-date"
+                name="dueDate"
+                type="datetime-local"
+                value={formValues.dueDate}
+                onChange={(event) => handleFormChange('dueDate', event.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className={`field${formErrors.description ? ' field--invalid' : ''}`}>
+            <label htmlFor="task-description">Beschreibung</label>
+            <textarea
+              id="task-description"
+              name="description"
+              rows={5}
+              placeholder="Ergaenze Details, Kontext und das erwartete Ergebnis."
+              value={formValues.description}
+              onChange={(event) =>
+                handleFormChange('description', event.target.value)
+              }
+              aria-invalid={Boolean(formErrors.description)}
+            />
+            <span className="field__hint">
+              Assignment und Statussteuerung folgen im naechsten Commit direkt in der Liste.
+            </span>
+            {formErrors.description ? (
+              <span className="field__error" role="alert">
+                {formErrors.description}
+              </span>
+            ) : null}
+          </div>
+
+          {formError ? (
+            <div className="form-feedback form-feedback--error" role="alert">
+              {formError}
+            </div>
+          ) : null}
+
+          <div className="task-form__actions">
+            <button className="button button--primary" type="submit" disabled={isSubmitting}>
+              {isSubmitting
+                ? editingTaskId
+                  ? 'Speichere Task...'
+                  : 'Erstelle Task...'
+                : editingTaskId
+                  ? 'Task speichern'
+                  : 'Task erstellen'}
+            </button>
+            <button
+              className="button button--ghost"
+              type="button"
+              onClick={closeForm}
+              disabled={isSubmitting}
+            >
+              Abbrechen
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       <div className="tasks-toolbar">
         <div className="field">
@@ -193,6 +458,18 @@ export function ProjectTasksPage() {
                   <dd>{formatDateTime(task.updatedAt)}</dd>
                 </div>
               </dl>
+
+              {task.id ? (
+                <div className="task-card__actions">
+                  <button
+                    className="button button--ghost"
+                    type="button"
+                    onClick={() => openEditForm(task)}
+                  >
+                    Bearbeiten
+                  </button>
+                </div>
+              ) : null}
             </article>
           ))}
         </div>
@@ -233,4 +510,32 @@ function formatPriority(priority?: string) {
 
 function normalizeToken(value?: string) {
   return value?.toLowerCase().replaceAll('_', '-') ?? 'unknown'
+}
+
+function normalizeTaskPriority(priority?: string): NonNullable<CreateTaskRequest['priority']> {
+  if (
+    priority === 'LOW' ||
+    priority === 'MEDIUM' ||
+    priority === 'HIGH' ||
+    priority === 'URGENT'
+  ) {
+    return priority
+  }
+
+  return 'MEDIUM'
+}
+
+function normalizeDateInput(value?: string) {
+  if (!value) {
+    return ''
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return localDate.toISOString().slice(0, 16)
 }
