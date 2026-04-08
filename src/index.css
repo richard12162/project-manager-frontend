@@ -700,6 +700,12 @@ img {
   flex-wrap: wrap;
 }
 
+.task-card__controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 16px;
+}
+
 .task-list {
   display: grid;
   gap: 16px;
@@ -818,6 +824,7 @@ img {
   .projects-layout,
   .project-detail__header,
   .task-form__grid,
+  .task-card__controls,
   .tasks-toolbar,
   .task-card__meta {
     grid-template-columns: 1fr;

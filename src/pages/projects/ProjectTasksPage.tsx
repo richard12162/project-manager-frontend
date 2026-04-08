@@ -4,13 +4,17 @@ import { useOutletContext } from 'react-router-dom'
 import { ApiError } from '../../api/client'
 import {
   createProjectTask,
+  getProjectMembers,
   getProjectTasks,
   type CreateTaskRequest,
+  type ProjectMemberResponse,
   type ProjectResponse,
   type TaskPriority,
   type TaskResponse,
   type TaskStatus,
   updateProjectTask,
+  updateProjectTaskAssignment,
+  updateProjectTaskStatus,
 } from '../../api/projects'
 import { useAuth } from '../../hooks/useAuth'
 import { formatDateTime } from '../../utils/date'
@@ -53,6 +57,7 @@ type TaskFormErrors = Partial<Record<keyof TaskFormValues, string>>
 export function ProjectTasksPage() {
   const { token } = useAuth()
   const { project } = useOutletContext<{ project: ProjectResponse }>()
+  const [members, setMembers] = useState<ProjectMemberResponse[]>([])
   const [tasks, setTasks] = useState<TaskResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -69,6 +74,41 @@ export function ProjectTasksPage() {
   const [formErrors, setFormErrors] = useState<TaskFormErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [taskActionError, setTaskActionError] = useState<string | null>(null)
+  const [statusUpdatingTaskId, setStatusUpdatingTaskId] = useState<string | null>(null)
+  const [assignmentUpdatingTaskId, setAssignmentUpdatingTaskId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!token || !project.id) {
+      return
+    }
+
+    const sessionToken = token
+    const currentProjectId = project.id
+    let cancelled = false
+
+    async function loadMembers() {
+      try {
+        const nextMembers = await getProjectMembers(sessionToken, currentProjectId)
+
+        if (cancelled) {
+          return
+        }
+
+        setMembers(nextMembers)
+      } catch {
+        if (!cancelled) {
+          setMembers([])
+        }
+      }
+    }
+
+    void loadMembers()
+
+    return () => {
+      cancelled = true
+    }
+  }, [project.id, token])
 
   useEffect(() => {
     if (!token || !project.id) {
@@ -235,6 +275,56 @@ export function ProjectTasksPage() {
     }
   }
 
+  async function handleStatusChange(taskId: string, status: TaskStatus) {
+    if (!token) {
+      return
+    }
+
+    setTaskActionError(null)
+    setStatusUpdatingTaskId(taskId)
+
+    try {
+      const updatedTask = await updateProjectTaskStatus(token, taskId, { status })
+      setTasks((current) =>
+        current.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
+      )
+    } catch (submissionError) {
+      if (submissionError instanceof ApiError) {
+        setTaskActionError(submissionError.message)
+      } else {
+        setTaskActionError('Der Status konnte nicht aktualisiert werden.')
+      }
+    } finally {
+      setStatusUpdatingTaskId(null)
+    }
+  }
+
+  async function handleAssignmentChange(taskId: string, assigneeId: string) {
+    if (!token) {
+      return
+    }
+
+    setTaskActionError(null)
+    setAssignmentUpdatingTaskId(taskId)
+
+    try {
+      const updatedTask = await updateProjectTaskAssignment(token, taskId, {
+        assigneeId: assigneeId || undefined,
+      })
+      setTasks((current) =>
+        current.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
+      )
+    } catch (submissionError) {
+      if (submissionError instanceof ApiError) {
+        setTaskActionError(submissionError.message)
+      } else {
+        setTaskActionError('Die Zuweisung konnte nicht aktualisiert werden.')
+      }
+    } finally {
+      setAssignmentUpdatingTaskId(null)
+    }
+  }
+
   return (
     <section className="content-card">
       <div className="content-card__header">
@@ -261,6 +351,12 @@ export function ProjectTasksPage() {
           {isComposerOpen ? 'Formular schliessen' : 'Neue Task'}
         </button>
       </div>
+
+      {taskActionError ? (
+        <div className="form-feedback form-feedback--error" role="alert">
+          {taskActionError}
+        </div>
+      ) : null}
 
       {isComposerOpen ? (
         <form className="task-form" noValidate onSubmit={handleTaskSubmit}>
@@ -325,7 +421,7 @@ export function ProjectTasksPage() {
               aria-invalid={Boolean(formErrors.description)}
             />
             <span className="field__hint">
-              Assignment und Statussteuerung folgen im naechsten Commit direkt in der Liste.
+              Status und Assignment koennen direkt in der Liste angepasst werden.
             </span>
             {formErrors.description ? (
               <span className="field__error" role="alert">
@@ -460,6 +556,49 @@ export function ProjectTasksPage() {
               </dl>
 
               {task.id ? (
+                <div className="task-card__controls">
+                  <div className="field">
+                    <label htmlFor={`task-status-${task.id}`}>Status aendern</label>
+                    <select
+                      id={`task-status-${task.id}`}
+                      value={normalizeTaskStatus(task.status)}
+                      onChange={(event) =>
+                        handleStatusChange(task.id!, event.target.value as TaskStatus)
+                      }
+                      disabled={statusUpdatingTaskId === task.id}
+                    >
+                      {STATUS_OPTIONS.filter((option) => option.value !== 'ALL').map(
+                        (option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor={`task-assignee-${task.id}`}>Zuweisen</label>
+                    <select
+                      id={`task-assignee-${task.id}`}
+                      value={task.assigneeId ?? ''}
+                      onChange={(event) =>
+                        handleAssignmentChange(task.id!, event.target.value)
+                      }
+                      disabled={assignmentUpdatingTaskId === task.id}
+                    >
+                      <option value="">Nicht zugewiesen</option>
+                      {members.map((member) => (
+                        <option key={member.userId ?? member.id} value={member.userId ?? ''}>
+                          {member.email ?? 'Unbekanntes Mitglied'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : null}
+
+              {task.id ? (
                 <div className="task-card__actions">
                   <button
                     className="button button--ghost"
@@ -523,6 +662,19 @@ function normalizeTaskPriority(priority?: string): NonNullable<CreateTaskRequest
   }
 
   return 'MEDIUM'
+}
+
+function normalizeTaskStatus(status?: string): TaskStatus {
+  if (
+    status === 'TODO' ||
+    status === 'IN_PROGRESS' ||
+    status === 'IN_REVIEW' ||
+    status === 'DONE'
+  ) {
+    return status
+  }
+
+  return 'TODO'
 }
 
 function normalizeDateInput(value?: string) {

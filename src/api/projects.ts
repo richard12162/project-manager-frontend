@@ -3,12 +3,14 @@ import type { components, operations } from '../types/api'
 
 export type CreateProjectRequest = components['schemas']['CreateProjectRequest']
 export type ProjectResponse = components['schemas']['ProjectResponse']
+export type ProjectMemberResponse = components['schemas']['ProjectMemberResponse']
 export type CreateTaskRequest = components['schemas']['CreateTaskRequest']
 export type TaskResponse = components['schemas']['TaskResponse']
 export type UpdateTaskRequest = components['schemas']['UpdateTaskRequest']
-export type TaskStatus = NonNullable<
-  operations['getTasksByProject']['parameters']['query']
->['status']
+export type UpdateTaskStatusRequest = components['schemas']['UpdateTaskStatusRequest']
+export type UpdateTaskAssignmentRequest =
+  components['schemas']['UpdateTaskAssignmentRequest']
+export type TaskStatus = UpdateTaskStatusRequest['status']
 export type TaskPriority = NonNullable<
   operations['getTasksByProject']['parameters']['query']
 >['priority']
@@ -34,6 +36,12 @@ export function createProject(token: string, payload: CreateProjectRequest) {
     method: 'POST',
     token,
     body: payload,
+  })
+}
+
+export function getProjectMembers(token: string, projectId: string) {
+  return apiRequest<ProjectMemberResponse[]>(`/projects/${projectId}/members`, {
+    token,
   })
 }
 
@@ -80,6 +88,30 @@ export function updateProjectTask(
   payload: UpdateTaskRequest,
 ) {
   return apiRequest<TaskResponse>(`/tasks/${taskId}`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  })
+}
+
+export function updateProjectTaskStatus(
+  token: string,
+  taskId: string,
+  payload: UpdateTaskStatusRequest,
+) {
+  return apiRequest<TaskResponse>(`/tasks/${taskId}/status`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  })
+}
+
+export function updateProjectTaskAssignment(
+  token: string,
+  taskId: string,
+  payload: UpdateTaskAssignmentRequest,
+) {
+  return apiRequest<TaskResponse>(`/tasks/${taskId}/assignment`, {
     method: 'PATCH',
     token,
     body: payload,
