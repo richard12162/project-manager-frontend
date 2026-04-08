@@ -782,6 +782,100 @@ img {
   gap: 10px;
 }
 
+.member-list,
+.activity-list {
+  display: grid;
+  gap: 16px;
+}
+
+.member-card,
+.activity-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+}
+
+.member-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.member-card__identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.member-card__avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.member-card__identity h2 {
+  margin-bottom: 4px;
+}
+
+.member-card__identity p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.member-role-badge,
+.activity-type-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.activity-card {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.activity-card__rail {
+  width: 10px;
+  min-height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #1f2937, #cbd5e1);
+}
+
+.activity-card__content {
+  display: grid;
+  gap: 10px;
+}
+
+.activity-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.activity-card__entity {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
 .task-list {
   display: grid;
   gap: 16px;
@@ -911,7 +1005,8 @@ img {
   .project-card__header,
   .task-card__heading,
   .comment-card__header,
-  .comments-panel__header {
+  .comments-panel__header,
+  .member-card {
     align-items: flex-start;
     flex-direction: column;
   }
