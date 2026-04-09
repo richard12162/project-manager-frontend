@@ -30,7 +30,7 @@ export function AppHeader() {
             </span>
           ) : null}
           <button className="button button--ghost" type="button" onClick={handleLogout}>
-            Logout
+            Abmelden
           </button>
         </nav>
       </div>

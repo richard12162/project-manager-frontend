@@ -188,126 +188,85 @@ export function ProjectsPage() {
             setCreateError(null)
           }}
         >
-          {isCreateOpen ? 'Formular schliessen' : 'Neues Projekt'}
+          {isCreateOpen ? 'Abbrechen' : 'Neues Projekt'}
         </button>
       </div>
 
       <div className="projects-layout">
-        <aside className="projects-sidebar">
-          <div className="projects-sidebar__section">
-            <h2>Neues Projekt</h2>
-            <p>
-              Lege direkt von hier ein Projekt an und starte danach mit Tasks,
-              Team und Aktivitaeten.
-            </p>
-
-            {isCreateOpen ? (
-              <form className="form-stack" noValidate onSubmit={handleCreateSubmit}>
-                <div className={`field${createErrors.name ? ' field--invalid' : ''}`}>
-                  <label htmlFor="project-name">Projektname</label>
-                  <input
-                    id="project-name"
-                    name="name"
-                    type="text"
-                    placeholder="z. B. Website Relaunch"
-                    value={createValues.name}
-                    onChange={(event) =>
-                      handleCreateChange('name', event.target.value)
-                    }
-                    aria-invalid={Boolean(createErrors.name)}
-                  />
-                  {createErrors.name ? (
-                    <span className="field__error" role="alert">
-                      {createErrors.name}
-                    </span>
-                  ) : null}
-                </div>
-
-                <div
-                  className={`field${createErrors.description ? ' field--invalid' : ''}`}
-                >
-                  <label htmlFor="project-description">Beschreibung</label>
-                  <textarea
-                    id="project-description"
-                    name="description"
-                    rows={4}
-                    placeholder="Kurz beschreiben, worum es in diesem Projekt geht."
-                    value={createValues.description ?? ''}
-                    onChange={(event) =>
-                      handleCreateChange('description', event.target.value)
-                    }
-                    aria-invalid={Boolean(createErrors.description)}
-                  />
-                  <span className="field__hint">
-                    Optional, aber hilfreich fuer den ersten gemeinsamen Kontext.
-                  </span>
-                  {createErrors.description ? (
-                    <span className="field__error" role="alert">
-                      {createErrors.description}
-                    </span>
-                  ) : null}
-                </div>
-
-                {createError ? (
-                  <div className="form-feedback form-feedback--error" role="alert">
-                    {createError}
-                  </div>
-                ) : null}
-
-                <div className="project-create-actions">
-                  <button className="button button--primary" type="submit" disabled={isCreating}>
-                    {isCreating ? 'Erstelle Projekt...' : 'Projekt erstellen'}
-                  </button>
-                  <button
-                    className="button button--ghost"
-                    type="button"
-                    onClick={() => {
-                      setIsCreateOpen(false)
-                      setCreateError(null)
-                      setCreateErrors({})
-                    }}
-                    disabled={isCreating}
-                  >
-                    Abbrechen
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <button
-                className="button button--secondary project-create-trigger"
-                type="button"
-                onClick={() => setIsCreateOpen(true)}
-              >
-                Projekt anlegen
-              </button>
-            )}
-          </div>
-
-          <div className="projects-sidebar__section">
-            <h2>Uebersicht</h2>
-            <p>Dein Arbeitsbereich startet direkt mit der echten Projektliste.</p>
-          </div>
-
-          <div className="projects-sidebar__section">
-            <h2>Status</h2>
-            <dl className="project-stats">
-              <div>
-                <dt>Projekte</dt>
-                <dd>{projects.length}</dd>
-              </div>
-              <div>
-                <dt>Ansicht</dt>
-                <dd>{isLoading ? 'Laedt' : error ? 'Fehler' : 'Bereit'}</dd>
-              </div>
-              <div>
-                <dt>Erstellung</dt>
-                <dd>{isCreating ? 'Sendet' : isCreateOpen ? 'Offen' : 'Bereit'}</dd>
-              </div>
-            </dl>
-          </div>
-        </aside>
-
         <div className="projects-content">
+          {isCreateOpen ? (
+            <form className="project-create-form" noValidate onSubmit={handleCreateSubmit}>
+              <div className={`field${createErrors.name ? ' field--invalid' : ''}`}>
+                <label htmlFor="project-name">Projektname</label>
+                <input
+                  id="project-name"
+                  name="name"
+                  type="text"
+                  placeholder="z. B. Website Relaunch"
+                  value={createValues.name}
+                  onChange={(event) =>
+                    handleCreateChange('name', event.target.value)
+                  }
+                  aria-invalid={Boolean(createErrors.name)}
+                />
+                {createErrors.name ? (
+                  <span className="field__error" role="alert">
+                    {createErrors.name}
+                  </span>
+                ) : null}
+              </div>
+
+              <div
+                className={`field${createErrors.description ? ' field--invalid' : ''}`}
+              >
+                <label htmlFor="project-description">Beschreibung</label>
+                <textarea
+                  id="project-description"
+                  name="description"
+                  rows={4}
+                  placeholder="Kurz beschreiben, worum es in diesem Projekt geht."
+                  value={createValues.description ?? ''}
+                  onChange={(event) =>
+                    handleCreateChange('description', event.target.value)
+                  }
+                  aria-invalid={Boolean(createErrors.description)}
+                />
+                <span className="field__hint">
+                  Optional, aber hilfreich für den ersten gemeinsamen Kontext.
+                </span>
+                {createErrors.description ? (
+                  <span className="field__error" role="alert">
+                    {createErrors.description}
+                  </span>
+                ) : null}
+              </div>
+
+              {createError ? (
+                <div className="form-feedback form-feedback--error" role="alert">
+                  {createError}
+                </div>
+              ) : null}
+
+              <div className="project-create-actions">
+                <button className="button button--primary" type="submit" disabled={isCreating}>
+                  {isCreating ? 'Erstelle Projekt...' : 'Projekt erstellen'}
+                </button>
+                <button
+                  className="button button--ghost"
+                  type="button"
+                  onClick={() => {
+                    setIsCreateOpen(false)
+                    setCreateError(null)
+                    setCreateErrors({})
+                  }}
+                  disabled={isCreating}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </form>
+          ) : null}
+
           {isLoading ? (
             <div className="projects-state">
               <h2>Projekte werden geladen</h2>
@@ -366,7 +325,7 @@ export function ProjectsPage() {
                         className="button button--ghost"
                         to={`/projects/${project.id}/tasks`}
                       >
-                        Projekt oeffnen
+                        Projekt öffnen
                       </Link>
                     </div>
                   ) : null}
