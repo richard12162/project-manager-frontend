@@ -23,7 +23,7 @@ export function AppHeader() {
         </div>
 
         <nav className="topbar__nav" aria-label="Hauptnavigation">
-          <ShellNavLink to="/projects">Projects</ShellNavLink>
+          <ShellNavLink to="/projects">Projekte</ShellNavLink>
           {currentUser?.email ? (
             <span className="topbar__user" title={currentUser.email}>
               {currentUser.email}

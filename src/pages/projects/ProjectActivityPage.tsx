@@ -64,30 +64,30 @@ export function ProjectActivityPage() {
   return (
     <section className="content-card">
       <div className="content-card__header">
-        <p className="section-eyebrow">Activity</p>
-        <h1>Projektaktivitaet</h1>
+        <p className="section-eyebrow">Aktivität</p>
+        <h1>Projektaktivität</h1>
         <p>
-          Verlauf aller nachvollziehbaren Aenderungen im Projekt {project.name ?? 'dieses Projekt'}.
+          Verlauf aller nachvollziehbaren Änderungen im Projekt {project.name ?? 'dieses Projekt'}.
         </p>
       </div>
 
       {isLoading ? (
         <div className="detail-empty-state">
-          <h2>Aktivitaet wird geladen</h2>
+          <h2>Aktivität wird geladen</h2>
           <p>Wir sammeln gerade die letzten Aktionen rund um dieses Projekt.</p>
         </div>
       ) : null}
 
       {!isLoading && error ? (
         <div className="detail-empty-state detail-empty-state--error">
-          <h2>Aktivitaet konnte nicht geladen werden</h2>
+          <h2>Aktivität konnte nicht geladen werden</h2>
           <p>{error}</p>
         </div>
       ) : null}
 
       {!isLoading && !error && entries.length === 0 ? (
         <div className="detail-empty-state">
-          <h2>Noch keine Aktivitaet vorhanden</h2>
+          <h2>Noch keine Aktivität vorhanden</h2>
           <p>
             Sobald Tasks, Kommentare oder Teamaktionen im Projekt stattfinden,
             erscheinen sie hier chronologisch.
@@ -96,7 +96,7 @@ export function ProjectActivityPage() {
       ) : null}
 
       {!isLoading && !error && entries.length > 0 ? (
-        <div className="activity-list" aria-label="Projektaktivitaet">
+        <div className="activity-list" aria-label="Projektaktivität">
           {entries.map((entry) => (
             <article className="activity-card" key={entry.id ?? entry.createdAt}>
               <div className="activity-card__rail" aria-hidden="true" />
@@ -106,7 +106,7 @@ export function ProjectActivityPage() {
                   <span>{entry.actorEmail ?? 'Unbekannter Nutzer'}</span>
                   <span>{formatDateTime(entry.createdAt)}</span>
                 </div>
-                <p>{entry.message ?? 'Keine Aktivitaetsbeschreibung vorhanden.'}</p>
+                <p>{entry.message ?? 'Keine Aktivitätsbeschreibung vorhanden.'}</p>
                 <div className="activity-card__entity">
                   <strong>{entry.entityType ?? 'Entity'}</strong>
                   <span>{entry.entityId ?? 'Keine Referenz'}</span>

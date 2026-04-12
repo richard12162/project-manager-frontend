@@ -74,10 +74,9 @@ export function LoginPage() {
     <section className="auth-card">
       <div className="auth-card__header">
         <p className="section-eyebrow">Anmelden</p>
-        <h1>Willkommen zurueck</h1>
+        <h1>Willkommen zurück</h1>
         <p>
-          Melde dich an, um direkt in deine Projektliste und offenen Aufgaben zu
-          wechseln.
+          Melde dich an, um auf deine Projekte und Aufgaben zuzugreifen.
         </p>
       </div>
 
@@ -93,11 +92,8 @@ export function LoginPage() {
             value={values.email}
             onChange={(event) => handleChange('email', event.target.value)}
             aria-invalid={Boolean(errors.email)}
-            aria-describedby={errors.email ? 'login-email-error' : 'login-email-hint'}
+            aria-describedby={errors.email ? 'login-email-error' : undefined}
           />
-          <span className="field__hint" id="login-email-hint">
-            Nutze die Adresse, mit der du im Team-Workspace registriert bist.
-          </span>
           {errors.email ? (
             <span className="field__error" id="login-email-error" role="alert">
               {errors.email}
@@ -116,13 +112,8 @@ export function LoginPage() {
             value={values.password}
             onChange={(event) => handleChange('password', event.target.value)}
             aria-invalid={Boolean(errors.password)}
-            aria-describedby={
-              errors.password ? 'login-password-error' : 'login-password-hint'
-            }
+            aria-describedby={errors.password ? 'login-password-error' : undefined}
           />
-          <span className="field__hint" id="login-password-hint">
-            Dein Zugang wird gegen das Backend authentifiziert und danach direkt geladen.
-          </span>
           {errors.password ? (
             <span className="field__error" id="login-password-error" role="alert">
               {errors.password}
@@ -140,9 +131,6 @@ export function LoginPage() {
           <button className="button button--primary" type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Melde an...' : 'Einloggen'}
           </button>
-          <p className="auth-note">
-            Nach erfolgreichem Login laden wir dein Profil und leiten in die Projekte weiter.
-          </p>
         </div>
       </form>
 

@@ -171,7 +171,7 @@ export function ProjectsPage() {
     <section className="content-card">
       <div className="content-card__header split-header">
         <div>
-          <p className="section-eyebrow">Projects</p>
+          <p className="section-eyebrow">Projekte</p>
           <h1>Projektarbeitsbereich</h1>
           <p>
             {currentUser?.email

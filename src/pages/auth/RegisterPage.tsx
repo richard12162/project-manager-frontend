@@ -82,8 +82,7 @@ export function RegisterPage() {
         <p className="section-eyebrow">Registrieren</p>
         <h1>Workspace einrichten</h1>
         <p>
-          Lege deinen Zugang an und starte direkt mit Projekten, Aufgaben und
-          Teamkommunikation.
+          Registriere dich, um deine Projekte und Aufgaben zu erstellen und zu verwalten.
         </p>
       </div>
 
@@ -99,13 +98,8 @@ export function RegisterPage() {
             value={values.email}
             onChange={(event) => handleChange('email', event.target.value)}
             aria-invalid={Boolean(errors.email)}
-            aria-describedby={
-              errors.email ? 'register-email-error' : 'register-email-hint'
-            }
+            aria-describedby={errors.email ? 'register-email-error' : undefined}
           />
-          <span className="field__hint" id="register-email-hint">
-            Diese Adresse wird spaeter fuer Login, Kommentare und Zuweisungen genutzt.
-          </span>
           {errors.email ? (
             <span className="field__error" id="register-email-error" role="alert">
               {errors.email}
@@ -125,13 +119,8 @@ export function RegisterPage() {
             value={values.password}
             onChange={(event) => handleChange('password', event.target.value)}
             aria-invalid={Boolean(errors.password)}
-            aria-describedby={
-              errors.password ? 'register-password-error' : 'register-password-hint'
-            }
+            aria-describedby={errors.password ? 'register-password-error' : undefined}
           />
-            <span className="field__hint" id="register-password-hint">
-              Mindestens 8 Zeichen fuer den ersten produktiven Zugriff.
-            </span>
             {errors.password ? (
               <span className="field__error" id="register-password-error" role="alert">
                 {errors.password}
@@ -142,7 +131,7 @@ export function RegisterPage() {
           <div
             className={`field${errors.confirmPassword ? ' field--invalid' : ''}`}
           >
-            <label htmlFor="register-confirm-password">Passwort bestaetigen</label>
+            <label htmlFor="register-confirm-password">Passwort bestätigen</label>
             <input
               id="register-confirm-password"
               name="confirmPassword"
@@ -154,15 +143,8 @@ export function RegisterPage() {
                 handleChange('confirmPassword', event.target.value)
               }
               aria-invalid={Boolean(errors.confirmPassword)}
-              aria-describedby={
-                errors.confirmPassword
-                  ? 'register-confirm-password-error'
-                  : 'register-confirm-password-hint'
-              }
+              aria-describedby={errors.confirmPassword ? 'register-confirm-password-error' : undefined}
             />
-            <span className="field__hint" id="register-confirm-password-hint">
-              So vermeiden wir Tippfehler, bevor dein Zugang im Backend angelegt wird.
-            </span>
             {errors.confirmPassword ? (
               <span
                 className="field__error"
@@ -185,9 +167,6 @@ export function RegisterPage() {
           <button className="button button--primary" type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Erstelle Konto...' : 'Konto erstellen'}
           </button>
-          <p className="auth-note">
-            Nach erfolgreicher Registrierung melden wir dich direkt an.
-          </p>
         </div>
       </form>
 

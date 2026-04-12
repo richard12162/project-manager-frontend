@@ -25,7 +25,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { formatDateTime } from '../../utils/date'
 
 const STATUS_OPTIONS: Array<{ label: string; value: TaskStatus | 'ALL' }> = [
-  { label: 'Alle Status', value: 'ALL' },
+  { label: 'Beliebig', value: 'ALL' },
   { label: 'To do', value: 'TODO' },
   { label: 'In progress', value: 'IN_PROGRESS' },
   { label: 'In review', value: 'IN_REVIEW' },
@@ -33,7 +33,7 @@ const STATUS_OPTIONS: Array<{ label: string; value: TaskStatus | 'ALL' }> = [
 ]
 
 const PRIORITY_OPTIONS: Array<{ label: string; value: TaskPriority | 'ALL' }> = [
-  { label: 'Alle Prioritaeten', value: 'ALL' },
+  { label: 'Beliebig', value: 'ALL' },
   { label: 'Low', value: 'LOW' },
   { label: 'Medium', value: 'MEDIUM' },
   { label: 'High', value: 'HIGH' },
@@ -485,11 +485,11 @@ export function ProjectTasksPage() {
   return (
     <section className="content-card">
       <div className="content-card__header">
-        <p className="section-eyebrow">Tasks</p>
+        <p className="section-eyebrow">Aufgaben</p>
         <h1>Aufgabenbereich</h1>
         <p>
-          Alle Aufgaben fuer {project.name ?? 'dieses Projekt'} an einem Ort, mit
-          Filtern fuer Status und Prioritaet.
+          Alle Aufgaben für {project.name ?? 'dieses Projekt'} an einem Ort, mit
+          Filtern für Status und Priorität.
         </p>
       </div>
 
@@ -505,7 +505,7 @@ export function ProjectTasksPage() {
             }
           }}
         >
-          {isComposerOpen ? 'Formular schliessen' : 'Neue Task'}
+          {isComposerOpen ? 'Abbrechen' : 'Neue Aufgabe'}
         </button>
       </div>
 
@@ -537,7 +537,7 @@ export function ProjectTasksPage() {
 
           <div className="task-form__grid">
             <div className="field">
-              <label htmlFor="task-priority">Prioritaet</label>
+              <label htmlFor="task-priority">Priorität</label>
               <select
                 id="task-priority"
                 name="priority"
@@ -553,7 +553,7 @@ export function ProjectTasksPage() {
             </div>
 
             <div className="field">
-              <label htmlFor="task-due-date">Faelligkeit</label>
+              <label htmlFor="task-due-date">Fälligkeit</label>
               <input
                 id="task-due-date"
                 name="dueDate"
@@ -570,7 +570,7 @@ export function ProjectTasksPage() {
               id="task-description"
               name="description"
               rows={5}
-              placeholder="Ergaenze Details, Kontext und das erwartete Ergebnis."
+              placeholder="Ergänze Details, Kontext und das erwartete Ergebnis."
               value={formValues.description}
               onChange={(event) =>
                 handleFormChange('description', event.target.value)
@@ -578,7 +578,7 @@ export function ProjectTasksPage() {
               aria-invalid={Boolean(formErrors.description)}
             />
             <span className="field__hint">
-              Status und Assignment koennen direkt in der Liste angepasst werden.
+              Status und Zuweisung können direkt in der Liste angepasst werden.
             </span>
             {formErrors.description ? (
               <span className="field__error" role="alert">
@@ -597,11 +597,11 @@ export function ProjectTasksPage() {
             <button className="button button--primary" type="submit" disabled={isSubmitting}>
               {isSubmitting
                 ? editingTaskId
-                  ? 'Speichere Task...'
-                  : 'Erstelle Task...'
+                  ? 'Speichere Aufgabe...'
+                  : 'Erstelle Aufgabe...'
                 : editingTaskId
-                  ? 'Task speichern'
-                  : 'Task erstellen'}
+                  ? 'Aufgabe speichern'
+                  : 'Aufgabe erstellen'}
             </button>
             <button
               className="button button--ghost"
@@ -634,7 +634,7 @@ export function ProjectTasksPage() {
         </div>
 
         <div className="field">
-          <label htmlFor="task-priority-filter">Prioritaet</label>
+          <label htmlFor="task-priority-filter">Priorität</label>
           <select
             id="task-priority-filter"
             value={priorityFilter}
@@ -653,14 +653,14 @@ export function ProjectTasksPage() {
 
       {isLoading ? (
         <div className="detail-empty-state">
-          <h2>Tasks werden geladen</h2>
+          <h2>Aufgaben werden geladen</h2>
           <p>Wir holen gerade die Aufgabenliste aus dem Backend.</p>
         </div>
       ) : null}
 
       {!isLoading && error ? (
         <div className="detail-empty-state detail-empty-state--error">
-          <h2>Tasks konnten nicht geladen werden</h2>
+          <h2>Aufgaben konnten nicht geladen werden</h2>
           <p>{error}</p>
         </div>
       ) : null}
@@ -669,8 +669,8 @@ export function ProjectTasksPage() {
         <div className="detail-empty-state">
           <h2>Keine passenden Tasks gefunden</h2>
           <p>
-            Fuer die aktuelle Filterkombination gibt es keine Aufgaben. Passe die
-            Filter an oder lege im naechsten Schritt eine neue Task an.
+            Für die aktuelle Filterkombination gibt es keine Aufgaben. Passe die
+            Filter an oder lege im nächsten Schritt eine neue Aufgabe an.
           </p>
         </div>
       ) : null}
@@ -703,7 +703,7 @@ export function ProjectTasksPage() {
                   <dd>{task.assigneeEmail ?? 'Nicht zugewiesen'}</dd>
                 </div>
                 <div>
-                  <dt>Faellig</dt>
+                  <dt>Fällig</dt>
                   <dd>{formatDateTime(task.dueDate)}</dd>
                 </div>
                 <div>
@@ -715,7 +715,7 @@ export function ProjectTasksPage() {
               {task.id ? (
                 <div className="task-card__controls">
                   <div className="field">
-                    <label htmlFor={`task-status-${task.id}`}>Status aendern</label>
+                    <label htmlFor={`task-status-${task.id}`}>Status ändern</label>
                     <select
                       id={`task-status-${task.id}`}
                       value={normalizeTaskStatus(task.status)}
@@ -849,7 +849,7 @@ export function ProjectTasksPage() {
                     <textarea
                       id={`comment-draft-${task.id}`}
                       rows={4}
-                      placeholder="Rueckfragen, Kontext oder Update zur Aufgabe festhalten."
+                      placeholder="Rückfragen, Kontext oder Update zur Aufgabe festhalten."
                       value={commentDrafts[task.id] ?? ''}
                       onChange={(event) =>
                         handleCommentDraftChange(task.id!, event.target.value)
@@ -915,7 +915,7 @@ function formatPriority(priority?: string) {
     case 'URGENT':
       return 'Urgent'
     default:
-      return 'Ohne Prioritaet'
+      return 'Ohne Priorität'
   }
 }
 

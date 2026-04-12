@@ -112,7 +112,7 @@ export function ProjectDetailPage() {
     <section className="project-detail">
       <div className="content-card project-detail__header">
         <div className="project-detail__title">
-          <p className="section-eyebrow">Project Detail</p>
+          <p className="section-eyebrow">Projekt-Details</p>
           <h1>{project.name ?? 'Unbenanntes Projekt'}</h1>
           <p>{project.description?.trim() || 'Keine Projektbeschreibung hinterlegt.'}</p>
         </div>
@@ -133,9 +133,9 @@ export function ProjectDetailPage() {
       </div>
 
       <div className="project-detail__tabs" role="tablist" aria-label="Projektbereiche">
-        <ProjectTabLink to="tasks">Tasks</ProjectTabLink>
-        <ProjectTabLink to="members">Members</ProjectTabLink>
-        <ProjectTabLink to="activity">Activity</ProjectTabLink>
+        <ProjectTabLink to="tasks">Aufgaben</ProjectTabLink>
+        <ProjectTabLink to="members">Mitglieder</ProjectTabLink>
+        <ProjectTabLink to="activity">Aktivität</ProjectTabLink>
       </div>
 
       <Outlet context={{ project }} />

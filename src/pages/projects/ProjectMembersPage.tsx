@@ -64,10 +64,10 @@ export function ProjectMembersPage() {
   return (
     <section className="content-card">
       <div className="content-card__header">
-        <p className="section-eyebrow">Members</p>
+        <p className="section-eyebrow">Mitglieder</p>
         <h1>Teamzugriff</h1>
         <p>
-          Alle Projektmitglieder fuer {project.name ?? 'dieses Projekt'} mit Rolle
+          Alle Projektmitglieder für {project.name ?? 'dieses Projekt'} mit Rolle
           und Beitrittszeitpunkt.
         </p>
       </div>
@@ -106,7 +106,7 @@ export function ProjectMembersPage() {
                 </div>
                 <div>
                   <h2>{member.email ?? 'Unbekannte E-Mail'}</h2>
-                  <p>Zum Projekt hinzugefuegt am {formatDateTime(member.joinedAt)}</p>
+                  <p>Zum Projekt hinzugefügt am {formatDateTime(member.joinedAt)}</p>
                 </div>
               </div>
 
