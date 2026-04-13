@@ -2,7 +2,7 @@
 
 A modern project management frontend built with React, TypeScript, and Vite. It provides a focused workspace for teams to manage projects, tasks, members, comments, and activity through a clean interface connected to a Spring Boot backend.
 
-## ✨ Features
+## Features
 
 - Secure authentication flow with login, registration, and session persistence
 - Project overview with direct access to active workspaces
@@ -13,7 +13,7 @@ A modern project management frontend built with React, TypeScript, and Vite. It 
 - Activity tracking for better visibility into project changes
 - Loading, error, and empty states for a more polished user experience
 
-## 📸 Screenshots
+## Screenshots
 
 ### Login
 
@@ -27,7 +27,7 @@ A modern project management frontend built with React, TypeScript, and Vite. It 
 
 ![Project Details](./docs/screenshots/project-details.png)
 
-## 🛠 Tech Stack
+## Tech Stack
 
 **Frontend**
 - React
@@ -40,7 +40,7 @@ A modern project management frontend built with React, TypeScript, and Vite. It 
 - JWT-based authentication
 - OpenAPI-generated API types
 
-## 🧱 Architecture
+## Architecture
 
 The application is structured around a clear separation of concerns:
 
@@ -49,7 +49,7 @@ The application is structured around a clear separation of concerns:
 - **API Layer:** reusable request helpers and typed service modules for backend communication
 - **Feature-Based UI:** pages and components organized by domain, such as auth, projects, and tasks
 
-## 🔌 Backend Integration
+## Backend Integration
 
 The frontend communicates with a Spring Boot backend via REST endpoints.
 
@@ -64,7 +64,7 @@ Example:
 VITE_API_URL=http://localhost:8080
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 1. Clone the repository
 2. Install dependencies
@@ -88,7 +88,7 @@ To run linting:
 npm run lint
 ```
 
-## 📂 Project Structure
+## Project Structure
 
 ```bash
 src/
