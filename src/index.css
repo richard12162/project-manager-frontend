@@ -425,6 +425,12 @@ img {
   border: 1px solid rgba(180, 35, 24, 0.14);
 }
 
+.form-feedback--success {
+  color: #166534;
+  background: rgba(22, 101, 52, 0.08);
+  border: 1px solid rgba(22, 101, 52, 0.14);
+}
+
 .hero-metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -764,6 +770,37 @@ img {
 .activity-list {
   display: grid;
   gap: 16px;
+}
+
+.member-invite-card {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+}
+
+.member-invite-card h2 {
+  margin-bottom: 6px;
+}
+
+.member-invite-card p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.member-invite-form {
+  display: grid;
+  gap: 14px;
+}
+
+.member-invite-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .member-card,

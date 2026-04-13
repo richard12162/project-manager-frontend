@@ -4,6 +4,7 @@ import type { components, operations } from '../types/api'
 export type CreateProjectRequest = components['schemas']['CreateProjectRequest']
 export type ProjectResponse = components['schemas']['ProjectResponse']
 export type ProjectMemberResponse = components['schemas']['ProjectMemberResponse']
+export type AddProjectMemberRequest = components['schemas']['AddProjectMemberRequest']
 export type ActivityLogResponse = components['schemas']['ActivityLogResponse']
 export type CreateTaskRequest = components['schemas']['CreateTaskRequest']
 export type TaskResponse = components['schemas']['TaskResponse']
@@ -46,6 +47,18 @@ export function createProject(token: string, payload: CreateProjectRequest) {
 export function getProjectMembers(token: string, projectId: string) {
   return apiRequest<ProjectMemberResponse[]>(`/projects/${projectId}/members`, {
     token,
+  })
+}
+
+export function addProjectMember(
+  token: string,
+  projectId: string,
+  payload: AddProjectMemberRequest,
+) {
+  return apiRequest<ProjectMemberResponse>(`/projects/${projectId}/members`, {
+    method: 'POST',
+    token,
+    body: payload,
   })
 }
 
