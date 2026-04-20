@@ -4,12 +4,15 @@ import { formatDateTime } from '../../utils/date'
 
 type TaskCardProps = {
   task: TaskResponse
+  context?: ReactNode
   controls?: ReactNode
   actions?: ReactNode
   details?: ReactNode
 }
 
-export function TaskCard({ task, controls, actions, details }: TaskCardProps) {
+export function TaskCard({ task, context, controls, actions, details }: TaskCardProps) {
+  const dueDateLabel = formatOptionalDateTime(task.dueDate)
+
   return (
     <article className="task-card">
       <div className="task-card__main">
@@ -27,6 +30,7 @@ export function TaskCard({ task, controls, actions, details }: TaskCardProps) {
           </div>
         </div>
 
+        {context ? <div className="task-card__context">{context}</div> : null}
         <p>{task.description?.trim() || 'Keine Beschreibung hinterlegt.'}</p>
       </div>
 
@@ -35,10 +39,12 @@ export function TaskCard({ task, controls, actions, details }: TaskCardProps) {
           <dt>Zugewiesen an</dt>
           <dd>{task.assigneeEmail ?? 'Nicht zugewiesen'}</dd>
         </div>
-        <div>
-          <dt>Fällig</dt>
-          <dd>{formatDateTime(task.dueDate)}</dd>
-        </div>
+        {dueDateLabel ? (
+          <div>
+            <dt>Fällig</dt>
+            <dd>{dueDateLabel}</dd>
+          </div>
+        ) : null}
         <div>
           <dt>Aktualisiert</dt>
           <dd>{formatDateTime(task.updatedAt)}</dd>
@@ -84,4 +90,9 @@ export function formatTaskPriority(priority?: string) {
 
 export function normalizeTaskToken(value?: string) {
   return value?.toLowerCase().replaceAll('_', '-') ?? 'unknown'
+}
+
+function formatOptionalDateTime(value?: string) {
+  const label = formatDateTime(value)
+  return label === 'Unbekannt' ? null : label
 }

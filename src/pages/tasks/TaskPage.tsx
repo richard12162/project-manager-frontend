@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ApiError } from '../../api/client'
-import type { TaskResponse } from '../../api/projects'
+import { getMyProjects, type ProjectResponse, type TaskResponse } from '../../api/projects'
 import { getMyTasks } from '../../api/tasks'
 import { TaskCard } from '../../components/tasks/TaskCard'
 import { useAuth } from '../../hooks/useAuth'
@@ -8,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth'
 export function TaskPage() {
   const { token } = useAuth()
   const [tasks, setTasks] = useState<TaskResponse[]>([])
+  const [projectsById, setProjectsById] = useState<Record<string, ProjectResponse>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,13 +26,23 @@ export function TaskPage() {
         setIsLoading(true)
         setError(null)
 
-        const response = await getMyTasks(sessionToken)
+        const [taskResponse, projectResponse] = await Promise.all([
+          getMyTasks(sessionToken),
+          getMyProjects(sessionToken),
+        ])
 
         if (cancelled) {
           return
         }
 
-        setTasks(response)
+        setTasks(taskResponse)
+        setProjectsById(
+          Object.fromEntries(
+            projectResponse
+              .filter((project) => project.id)
+              .map((project) => [project.id!, project]),
+          ),
+        )
       } catch (loadError) {
         if (cancelled) {
           return
@@ -87,7 +99,30 @@ export function TaskPage() {
       {!isLoading && !error && tasks.length > 0 ? (
         <div className="task-list" aria-label="Meine Aufgaben">
           {tasks.map((task) => (
-            <TaskCard key={task.id ?? task.title} task={task} />
+            <TaskCard
+              key={task.id ?? task.title}
+              task={task}
+              context={
+                <p>
+                  Projekt:{' '}
+                  <strong>
+                    {task.projectId
+                      ? projectsById[task.projectId]?.name ?? 'Unbekanntes Projekt'
+                      : 'Unbekanntes Projekt'}
+                  </strong>
+                </p>
+              }
+              actions={
+                task.projectId ? (
+                  <Link
+                    className="button button--ghost"
+                    to={`/projects/${task.projectId}/tasks`}
+                  >
+                    Gehe zu der Aufgabe
+                  </Link>
+                ) : null
+              }
+            />
           ))}
         </div>
       ) : null}

@@ -6,7 +6,7 @@ import {
 } from './taskOptions'
 
 type ProjectTaskFormProps = {
-  editingTaskId: string | null
+  isEditing: boolean
   formValues: TaskFormValues
   formErrors: TaskFormErrors
   formError: string | null
@@ -17,7 +17,7 @@ type ProjectTaskFormProps = {
 }
 
 export function ProjectTaskForm({
-  editingTaskId,
+  isEditing,
   formValues,
   formErrors,
   formError,
@@ -105,10 +105,10 @@ export function ProjectTaskForm({
       <div className="task-form__actions">
         <button className="button button--primary" type="submit" disabled={isSubmitting}>
           {isSubmitting
-            ? editingTaskId
+            ? isEditing
               ? 'Speichere Aufgabe...'
               : 'Erstelle Aufgabe...'
-            : editingTaskId
+            : isEditing
               ? 'Aufgabe speichern'
               : 'Aufgabe erstellen'}
         </button>

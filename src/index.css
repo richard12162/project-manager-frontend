@@ -910,6 +910,15 @@ img {
   gap: 10px;
 }
 
+.task-card__context {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.task-card__context strong {
+  color: var(--text);
+}
+
 .task-card__heading {
   display: flex;
   align-items: flex-start;

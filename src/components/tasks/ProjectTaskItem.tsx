@@ -18,8 +18,7 @@ import { STATUS_OPTIONS, normalizeTaskStatus } from './taskOptions'
 type ProjectTaskItemProps = {
   task: TaskResponse
   members: ProjectMemberResponse[]
-  statusUpdatingTaskId: string | null
-  assignmentUpdatingTaskId: string | null
+  pendingTaskAction: string | null
   onStatusChange: (taskId: string, status: TaskStatus) => Promise<void>
   onAssignmentChange: (taskId: string, assigneeId: string) => Promise<void>
   onEditTask: (task: TaskResponse) => void
@@ -28,8 +27,7 @@ type ProjectTaskItemProps = {
 export function ProjectTaskItem({
   task,
   members,
-  statusUpdatingTaskId,
-  assignmentUpdatingTaskId,
+  pendingTaskAction,
   onStatusChange,
   onAssignmentChange,
   onEditTask,
@@ -175,7 +173,7 @@ export function ProjectTaskItem({
                 id={`task-status-${taskId}`}
                 value={normalizeTaskStatus(task.status)}
                 onChange={(event) => onStatusChange(taskId, event.target.value as TaskStatus)}
-                disabled={statusUpdatingTaskId === taskId}
+                disabled={pendingTaskAction === `status:${taskId}`}
               >
                 {STATUS_OPTIONS.filter((option) => option.value !== 'ALL').map((option) => (
                   <option key={option.value} value={option.value}>
@@ -190,7 +188,7 @@ export function ProjectTaskItem({
                 id={`task-assignee-${taskId}`}
                 value={task.assigneeId ?? ''}
                 onChange={(event) => onAssignmentChange(taskId, event.target.value)}
-                disabled={assignmentUpdatingTaskId === taskId}
+                disabled={pendingTaskAction === `assignment:${taskId}`}
               >
                 <option value="">Nicht zugewiesen</option>
                 {members.map((member) => (

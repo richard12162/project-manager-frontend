@@ -35,6 +35,8 @@ const EMPTY_TASK_FORM: TaskFormValues = {
   dueDate: '',
 }
 
+type FormMode = 'closed' | 'create' | 'edit'
+
 export function ProjectTasksPage() {
   const { token } = useAuth()
   const { project } = useOutletContext<{ project: ProjectResponse }>()
@@ -44,15 +46,14 @@ export function ProjectTasksPage() {
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>('ALL')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'ALL'>('ALL')
-  const [isComposerOpen, setIsComposerOpen] = useState(false)
+  const [formMode, setFormMode] = useState<FormMode>('closed')
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [formValues, setFormValues] = useState<TaskFormValues>(EMPTY_TASK_FORM)
   const [formErrors, setFormErrors] = useState<TaskFormErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [taskActionError, setTaskActionError] = useState<string | null>(null)
-  const [statusUpdatingTaskId, setStatusUpdatingTaskId] = useState<string | null>(null)
-  const [assignmentUpdatingTaskId, setAssignmentUpdatingTaskId] = useState<string | null>(null)
+  const [pendingTaskAction, setPendingTaskAction] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token || !project.id) {
@@ -146,14 +147,15 @@ export function ProjectTasksPage() {
 
   function openCreateForm() {
     setEditingTaskId(null)
+    setFormMode('create')
     setFormError(null)
     setFormErrors({})
     setFormValues(EMPTY_TASK_FORM)
-    setIsComposerOpen(true)
   }
 
   function openEditForm(task: TaskResponse) {
     setEditingTaskId(task.id ?? null)
+    setFormMode('edit')
     setFormError(null)
     setFormErrors({})
     setFormValues({
@@ -162,11 +164,10 @@ export function ProjectTasksPage() {
       priority: normalizeTaskPriority(task.priority),
       dueDate: normalizeDateInput(task.dueDate),
     })
-    setIsComposerOpen(true)
   }
 
   function closeForm() {
-    setIsComposerOpen(false)
+    setFormMode('closed')
     setEditingTaskId(null)
     setFormError(null)
     setFormErrors({})
@@ -244,7 +245,7 @@ export function ProjectTasksPage() {
     }
 
     setTaskActionError(null)
-    setStatusUpdatingTaskId(taskId)
+    setPendingTaskAction(`status:${taskId}`)
 
     try {
       const updatedTask = await updateProjectTaskStatus(token, taskId, { status })
@@ -258,7 +259,7 @@ export function ProjectTasksPage() {
         setTaskActionError('Der Status konnte nicht aktualisiert werden.')
       }
     } finally {
-      setStatusUpdatingTaskId(null)
+      setPendingTaskAction(null)
     }
   }
 
@@ -268,7 +269,7 @@ export function ProjectTasksPage() {
     }
 
     setTaskActionError(null)
-    setAssignmentUpdatingTaskId(taskId)
+    setPendingTaskAction(`assignment:${taskId}`)
 
     try {
       const updatedTask = await updateProjectTaskAssignment(token, taskId, {
@@ -284,7 +285,7 @@ export function ProjectTasksPage() {
         setTaskActionError('Die Zuweisung konnte nicht aktualisiert werden.')
       }
     } finally {
-      setAssignmentUpdatingTaskId(null)
+      setPendingTaskAction(null)
     }
   }
 
@@ -303,9 +304,9 @@ export function ProjectTasksPage() {
         <button
           className="button button--secondary"
           type="button"
-          onClick={isComposerOpen ? closeForm : openCreateForm}
+          onClick={formMode === 'closed' ? openCreateForm : closeForm}
         >
-          {isComposerOpen ? 'Abbrechen' : 'Neue Aufgabe'}
+          {formMode === 'closed' ? 'Neue Aufgabe' : 'Abbrechen'}
         </button>
       </div>
 
@@ -315,9 +316,9 @@ export function ProjectTasksPage() {
         </div>
       ) : null}
 
-      {isComposerOpen ? (
+      {formMode !== 'closed' ? (
         <ProjectTaskForm
-          editingTaskId={editingTaskId}
+          isEditing={formMode === 'edit'}
           formValues={formValues}
           formErrors={formErrors}
           formError={formError}
@@ -393,8 +394,7 @@ export function ProjectTasksPage() {
               key={task.id ?? task.title}
               task={task}
               members={members}
-              statusUpdatingTaskId={statusUpdatingTaskId}
-              assignmentUpdatingTaskId={assignmentUpdatingTaskId}
+              pendingTaskAction={pendingTaskAction}
               onStatusChange={handleStatusChange}
               onAssignmentChange={handleAssignmentChange}
               onEditTask={openEditForm}
