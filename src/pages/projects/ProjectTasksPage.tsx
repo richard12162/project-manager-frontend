@@ -4,62 +4,36 @@ import { useOutletContext } from 'react-router-dom'
 import { ApiError } from '../../api/client'
 import {
   createProjectTask,
-  createTaskComment,
-  deleteTaskComment,
   getProjectMembers,
   getProjectTasks,
-  getTaskComments,
-  type CommentResponse,
   type CreateTaskRequest,
   type ProjectMemberResponse,
   type ProjectResponse,
   type TaskPriority,
   type TaskResponse,
   type TaskStatus,
-  updateTaskComment,
   updateProjectTask,
   updateProjectTaskAssignment,
   updateProjectTaskStatus,
 } from '../../api/projects'
+import { ProjectTaskForm } from '../../components/tasks/ProjectTaskForm'
+import { ProjectTaskItem } from '../../components/tasks/ProjectTaskItem'
+import {
+  PRIORITY_OPTIONS,
+  STATUS_OPTIONS,
+  normalizeDateInput,
+  normalizeTaskPriority,
+  type TaskFormErrors,
+  type TaskFormValues,
+} from '../../components/tasks/taskOptions'
 import { useAuth } from '../../hooks/useAuth'
-import { formatDateTime } from '../../utils/date'
 
-const STATUS_OPTIONS: Array<{ label: string; value: TaskStatus | 'ALL' }> = [
-  { label: 'Beliebig', value: 'ALL' },
-  { label: 'To do', value: 'TODO' },
-  { label: 'In progress', value: 'IN_PROGRESS' },
-  { label: 'In review', value: 'IN_REVIEW' },
-  { label: 'Done', value: 'DONE' },
-]
-
-const PRIORITY_OPTIONS: Array<{ label: string; value: TaskPriority | 'ALL' }> = [
-  { label: 'Beliebig', value: 'ALL' },
-  { label: 'Low', value: 'LOW' },
-  { label: 'Medium', value: 'MEDIUM' },
-  { label: 'High', value: 'HIGH' },
-  { label: 'Urgent', value: 'URGENT' },
-]
-
-const TASK_FORM_PRIORITY_OPTIONS: Array<{
-  label: string
-  value: NonNullable<CreateTaskRequest['priority']>
-}> = [
-  { label: 'Low', value: 'LOW' },
-  { label: 'Medium', value: 'MEDIUM' },
-  { label: 'High', value: 'HIGH' },
-  { label: 'Urgent', value: 'URGENT' },
-]
-
-type TaskFormValues = {
-  title: string
-  description: string
-  priority: NonNullable<CreateTaskRequest['priority']>
-  dueDate: string
+const EMPTY_TASK_FORM: TaskFormValues = {
+  title: '',
+  description: '',
+  priority: 'MEDIUM',
+  dueDate: '',
 }
-
-type TaskFormErrors = Partial<Record<keyof TaskFormValues, string>>
-type CommentDrafts = Record<string, string>
-type CommentCollections = Record<string, CommentResponse[]>
 
 export function ProjectTasksPage() {
   const { token } = useAuth()
@@ -72,26 +46,13 @@ export function ProjectTasksPage() {
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'ALL'>('ALL')
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
-  const [formValues, setFormValues] = useState<TaskFormValues>({
-    title: '',
-    description: '',
-    priority: 'MEDIUM',
-    dueDate: '',
-  })
+  const [formValues, setFormValues] = useState<TaskFormValues>(EMPTY_TASK_FORM)
   const [formErrors, setFormErrors] = useState<TaskFormErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [taskActionError, setTaskActionError] = useState<string | null>(null)
   const [statusUpdatingTaskId, setStatusUpdatingTaskId] = useState<string | null>(null)
   const [assignmentUpdatingTaskId, setAssignmentUpdatingTaskId] = useState<string | null>(null)
-  const [commentsByTaskId, setCommentsByTaskId] = useState<CommentCollections>({})
-  const [expandedTaskIds, setExpandedTaskIds] = useState<string[]>([])
-  const [loadingCommentsTaskId, setLoadingCommentsTaskId] = useState<string | null>(null)
-  const [commentDrafts, setCommentDrafts] = useState<CommentDrafts>({})
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
-  const [submittingCommentTaskId, setSubmittingCommentTaskId] = useState<string | null>(null)
-  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
-  const [commentError, setCommentError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token || !project.id) {
@@ -106,11 +67,9 @@ export function ProjectTasksPage() {
       try {
         const nextMembers = await getProjectMembers(sessionToken, currentProjectId)
 
-        if (cancelled) {
-          return
+        if (!cancelled) {
+          setMembers(nextMembers)
         }
-
-        setMembers(nextMembers)
       } catch {
         if (!cancelled) {
           setMembers([])
@@ -146,11 +105,9 @@ export function ProjectTasksPage() {
           sort: 'updatedAt,desc',
         })
 
-        if (cancelled) {
-          return
+        if (!cancelled) {
+          setTasks(response.content ?? [])
         }
-
-        setTasks(response.content ?? [])
       } catch (loadError) {
         if (cancelled) {
           return
@@ -181,7 +138,6 @@ export function ProjectTasksPage() {
       ...current,
       [field]: value,
     }))
-
     setFormErrors((current) => ({
       ...current,
       [field]: undefined,
@@ -192,12 +148,7 @@ export function ProjectTasksPage() {
     setEditingTaskId(null)
     setFormError(null)
     setFormErrors({})
-    setFormValues({
-      title: '',
-      description: '',
-      priority: 'MEDIUM',
-      dueDate: '',
-    })
+    setFormValues(EMPTY_TASK_FORM)
     setIsComposerOpen(true)
   }
 
@@ -253,7 +204,7 @@ export function ProjectTasksPage() {
       return
     }
 
-    const payload = {
+    const payload: CreateTaskRequest = {
       title: formValues.title.trim(),
       description: formValues.description.trim() || undefined,
       priority: formValues.priority,
@@ -263,16 +214,13 @@ export function ProjectTasksPage() {
     try {
       setIsSubmitting(true)
 
-      const savedTask =
-        editingTaskId
-          ? await updateProjectTask(token, editingTaskId, payload)
-          : await createProjectTask(token, project.id, payload)
+      const savedTask = editingTaskId
+        ? await updateProjectTask(token, editingTaskId, payload)
+        : await createProjectTask(token, project.id, payload)
 
       setTasks((current) => {
         if (editingTaskId) {
-          return current.map((task) =>
-            task.id === savedTask.id ? savedTask : task,
-          )
+          return current.map((task) => (task.id === savedTask.id ? savedTask : task))
         }
 
         return [savedTask, ...current]
@@ -340,148 +288,6 @@ export function ProjectTasksPage() {
     }
   }
 
-  async function handleToggleComments(taskId: string) {
-    const isExpanded = expandedTaskIds.includes(taskId)
-
-    if (isExpanded) {
-      setExpandedTaskIds((current) => current.filter((id) => id !== taskId))
-      return
-    }
-
-    setExpandedTaskIds((current) => [...current, taskId])
-    setCommentError(null)
-
-    if (commentsByTaskId[taskId]) {
-      return
-    }
-
-    if (!token) {
-      return
-    }
-
-    try {
-      setLoadingCommentsTaskId(taskId)
-      const comments = await getTaskComments(token, taskId)
-      setCommentsByTaskId((current) => ({
-        ...current,
-        [taskId]: comments,
-      }))
-    } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
-        setCommentError(submissionError.message)
-      } else {
-        setCommentError('Die Kommentare konnten nicht geladen werden.')
-      }
-    } finally {
-      setLoadingCommentsTaskId(null)
-    }
-  }
-
-  function handleCommentDraftChange(taskId: string, value: string) {
-    setCommentError(null)
-    setCommentDrafts((current) => ({
-      ...current,
-      [taskId]: value,
-    }))
-  }
-
-  function startCommentEdit(taskId: string, comment: CommentResponse) {
-    if (!comment.id) {
-      return
-    }
-
-    setEditingCommentId(comment.id)
-    setCommentDrafts((current) => ({
-      ...current,
-      [taskId]: comment.content ?? '',
-    }))
-  }
-
-  function cancelCommentEdit(taskId: string) {
-    setEditingCommentId(null)
-    setCommentDrafts((current) => ({
-      ...current,
-      [taskId]: '',
-    }))
-  }
-
-  async function handleCommentSubmit(taskId: string) {
-    if (!token) {
-      return
-    }
-
-    const content = commentDrafts[taskId]?.trim() ?? ''
-    if (!content) {
-      setCommentError('Bitte gib einen Kommentarinhalt ein.')
-      return
-    }
-
-    try {
-      setCommentError(null)
-      setSubmittingCommentTaskId(taskId)
-
-      if (editingCommentId) {
-        const updatedComment = await updateTaskComment(token, editingCommentId, {
-          content,
-        })
-
-        setCommentsByTaskId((current) => ({
-          ...current,
-          [taskId]: (current[taskId] ?? []).map((comment) =>
-            comment.id === updatedComment.id ? updatedComment : comment,
-          ),
-        }))
-      } else {
-        const createdComment = await createTaskComment(token, taskId, { content })
-        setCommentsByTaskId((current) => ({
-          ...current,
-          [taskId]: [createdComment, ...(current[taskId] ?? [])],
-        }))
-      }
-
-      setCommentDrafts((current) => ({
-        ...current,
-        [taskId]: '',
-      }))
-      setEditingCommentId(null)
-    } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
-        setCommentError(submissionError.message)
-      } else {
-        setCommentError('Der Kommentar konnte nicht gespeichert werden.')
-      }
-    } finally {
-      setSubmittingCommentTaskId(null)
-    }
-  }
-
-  async function handleCommentDelete(taskId: string, commentId: string) {
-    if (!token) {
-      return
-    }
-
-    try {
-      setCommentError(null)
-      setDeletingCommentId(commentId)
-      await deleteTaskComment(token, commentId)
-      setCommentsByTaskId((current) => ({
-        ...current,
-        [taskId]: (current[taskId] ?? []).filter((comment) => comment.id !== commentId),
-      }))
-      if (editingCommentId === commentId) {
-        setEditingCommentId(null)
-      }
-    } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
-        setCommentError(submissionError.message)
-      } else {
-        setCommentError('Der Kommentar konnte nicht geloescht werden.')
-      }
-    } finally {
-      setDeletingCommentId(null)
-    }
-  }
-
   return (
     <section className="content-card">
       <div className="content-card__header">
@@ -497,13 +303,7 @@ export function ProjectTasksPage() {
         <button
           className="button button--secondary"
           type="button"
-          onClick={() => {
-            if (isComposerOpen) {
-              closeForm()
-            } else {
-              openCreateForm()
-            }
-          }}
+          onClick={isComposerOpen ? closeForm : openCreateForm}
         >
           {isComposerOpen ? 'Abbrechen' : 'Neue Aufgabe'}
         </button>
@@ -516,103 +316,16 @@ export function ProjectTasksPage() {
       ) : null}
 
       {isComposerOpen ? (
-        <form className="task-form" noValidate onSubmit={handleTaskSubmit}>
-          <div className={`field${formErrors.title ? ' field--invalid' : ''}`}>
-            <label htmlFor="task-title">Titel</label>
-            <input
-              id="task-title"
-              name="title"
-              type="text"
-              placeholder="z. B. Kickoff mit dem Team vorbereiten"
-              value={formValues.title}
-              onChange={(event) => handleFormChange('title', event.target.value)}
-              aria-invalid={Boolean(formErrors.title)}
-            />
-            {formErrors.title ? (
-              <span className="field__error" role="alert">
-                {formErrors.title}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="task-form__grid">
-            <div className="field">
-              <label htmlFor="task-priority">Priorität</label>
-              <select
-                id="task-priority"
-                name="priority"
-                value={formValues.priority}
-                onChange={(event) => handleFormChange('priority', event.target.value)}
-              >
-                {TASK_FORM_PRIORITY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field">
-              <label htmlFor="task-due-date">Fälligkeit</label>
-              <input
-                id="task-due-date"
-                name="dueDate"
-                type="datetime-local"
-                value={formValues.dueDate}
-                onChange={(event) => handleFormChange('dueDate', event.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className={`field${formErrors.description ? ' field--invalid' : ''}`}>
-            <label htmlFor="task-description">Beschreibung</label>
-            <textarea
-              id="task-description"
-              name="description"
-              rows={5}
-              placeholder="Ergänze Details, Kontext und das erwartete Ergebnis."
-              value={formValues.description}
-              onChange={(event) =>
-                handleFormChange('description', event.target.value)
-              }
-              aria-invalid={Boolean(formErrors.description)}
-            />
-            <span className="field__hint">
-              Status und Zuweisung können direkt in der Liste angepasst werden.
-            </span>
-            {formErrors.description ? (
-              <span className="field__error" role="alert">
-                {formErrors.description}
-              </span>
-            ) : null}
-          </div>
-
-          {formError ? (
-            <div className="form-feedback form-feedback--error" role="alert">
-              {formError}
-            </div>
-          ) : null}
-
-          <div className="task-form__actions">
-            <button className="button button--primary" type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? editingTaskId
-                  ? 'Speichere Aufgabe...'
-                  : 'Erstelle Aufgabe...'
-                : editingTaskId
-                  ? 'Aufgabe speichern'
-                  : 'Aufgabe erstellen'}
-            </button>
-            <button
-              className="button button--ghost"
-              type="button"
-              onClick={closeForm}
-              disabled={isSubmitting}
-            >
-              Abbrechen
-            </button>
-          </div>
-        </form>
+        <ProjectTaskForm
+          editingTaskId={editingTaskId}
+          formValues={formValues}
+          formErrors={formErrors}
+          formError={formError}
+          isSubmitting={isSubmitting}
+          onSubmit={handleTaskSubmit}
+          onChange={handleFormChange}
+          onCancel={closeForm}
+        />
       ) : null}
 
       <div className="tasks-toolbar">
@@ -621,9 +334,7 @@ export function ProjectTasksPage() {
           <select
             id="task-status-filter"
             value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(event.target.value as TaskStatus | 'ALL')
-            }
+            onChange={(event) => setStatusFilter(event.target.value as TaskStatus | 'ALL')}
           >
             {STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -678,288 +389,19 @@ export function ProjectTasksPage() {
       {!isLoading && !error && tasks.length > 0 ? (
         <div className="task-list" aria-label="Taskliste">
           {tasks.map((task) => (
-            <article className="task-card" key={task.id ?? task.title}>
-              <div className="task-card__main">
-                <div className="task-card__heading">
-                  <h2>{task.title ?? 'Unbenannte Aufgabe'}</h2>
-                  <div className="task-card__badges">
-                    <span className={`task-badge task-badge--status-${normalizeToken(task.status)}`}>
-                      {formatStatus(task.status)}
-                    </span>
-                    <span
-                      className={`task-badge task-badge--priority-${normalizeToken(task.priority)}`}
-                    >
-                      {formatPriority(task.priority)}
-                    </span>
-                  </div>
-                </div>
-
-                <p>{task.description?.trim() || 'Keine Beschreibung hinterlegt.'}</p>
-              </div>
-
-              <dl className="task-card__meta">
-                <div>
-                  <dt>Zugewiesen an</dt>
-                  <dd>{task.assigneeEmail ?? 'Nicht zugewiesen'}</dd>
-                </div>
-                <div>
-                  <dt>Fällig</dt>
-                  <dd>{formatDateTime(task.dueDate)}</dd>
-                </div>
-                <div>
-                  <dt>Aktualisiert</dt>
-                  <dd>{formatDateTime(task.updatedAt)}</dd>
-                </div>
-              </dl>
-
-              {task.id ? (
-                <div className="task-card__controls">
-                  <div className="field">
-                    <label htmlFor={`task-status-${task.id}`}>Status ändern</label>
-                    <select
-                      id={`task-status-${task.id}`}
-                      value={normalizeTaskStatus(task.status)}
-                      onChange={(event) =>
-                        handleStatusChange(task.id!, event.target.value as TaskStatus)
-                      }
-                      disabled={statusUpdatingTaskId === task.id}
-                    >
-                      {STATUS_OPTIONS.filter((option) => option.value !== 'ALL').map(
-                        (option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </div>
-
-                  <div className="field">
-                    <label htmlFor={`task-assignee-${task.id}`}>Zuweisen</label>
-                    <select
-                      id={`task-assignee-${task.id}`}
-                      value={task.assigneeId ?? ''}
-                      onChange={(event) =>
-                        handleAssignmentChange(task.id!, event.target.value)
-                      }
-                      disabled={assignmentUpdatingTaskId === task.id}
-                    >
-                      <option value="">Nicht zugewiesen</option>
-                      {members.map((member) => (
-                        <option key={member.userId ?? member.id} value={member.userId ?? ''}>
-                          {member.email ?? 'Unbekanntes Mitglied'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ) : null}
-
-              {task.id ? (
-                <div className="task-card__actions">
-                  <button
-                    className="button button--ghost"
-                    type="button"
-                    onClick={() => handleToggleComments(task.id!)}
-                  >
-                    {expandedTaskIds.includes(task.id)
-                      ? 'Kommentare ausblenden'
-                      : 'Kommentare'}
-                  </button>
-                  <button
-                    className="button button--ghost"
-                    type="button"
-                    onClick={() => openEditForm(task)}
-                  >
-                    Bearbeiten
-                  </button>
-                </div>
-              ) : null}
-
-              {task.id && expandedTaskIds.includes(task.id) ? (
-                <div className="comments-panel">
-                  <div className="comments-panel__header">
-                    <h3>Kommentare</h3>
-                    <span>{(commentsByTaskId[task.id] ?? []).length} Eintraege</span>
-                  </div>
-
-                  {commentError ? (
-                    <div className="form-feedback form-feedback--error" role="alert">
-                      {commentError}
-                    </div>
-                  ) : null}
-
-                  {loadingCommentsTaskId === task.id ? (
-                    <div className="comments-empty-state">
-                      <p>Kommentare werden geladen...</p>
-                    </div>
-                  ) : null}
-
-                  {loadingCommentsTaskId !== task.id &&
-                  (commentsByTaskId[task.id] ?? []).length === 0 ? (
-                    <div className="comments-empty-state">
-                      <p>Noch keine Kommentare vorhanden.</p>
-                    </div>
-                  ) : null}
-
-                  {loadingCommentsTaskId !== task.id &&
-                  (commentsByTaskId[task.id] ?? []).length > 0 ? (
-                    <div className="comment-list">
-                      {(commentsByTaskId[task.id] ?? []).map((comment) => (
-                        <article className="comment-card" key={comment.id ?? comment.createdAt}>
-                          <div className="comment-card__header">
-                            <div>
-                              <strong>{comment.authorEmail ?? 'Unbekannter Autor'}</strong>
-                              <p>{formatDateTime(comment.updatedAt ?? comment.createdAt)}</p>
-                            </div>
-                            {comment.id ? (
-                              <div className="comment-card__actions">
-                                <button
-                                  className="button button--ghost"
-                                  type="button"
-                                  onClick={() => startCommentEdit(task.id!, comment)}
-                                >
-                                  Bearbeiten
-                                </button>
-                                <button
-                                  className="button button--ghost"
-                                  type="button"
-                                  onClick={() =>
-                                    handleCommentDelete(task.id!, comment.id!)
-                                  }
-                                  disabled={deletingCommentId === comment.id}
-                                >
-                                  {deletingCommentId === comment.id
-                                    ? 'Loesche...'
-                                    : 'Loeschen'}
-                                </button>
-                              </div>
-                            ) : null}
-                          </div>
-                          <p>{comment.content ?? ''}</p>
-                        </article>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <div className="comment-composer">
-                    <label htmlFor={`comment-draft-${task.id}`}>
-                      {editingCommentId ? 'Kommentar bearbeiten' : 'Neuen Kommentar schreiben'}
-                    </label>
-                    <textarea
-                      id={`comment-draft-${task.id}`}
-                      rows={4}
-                      placeholder="Rückfragen, Kontext oder Update zur Aufgabe festhalten."
-                      value={commentDrafts[task.id] ?? ''}
-                      onChange={(event) =>
-                        handleCommentDraftChange(task.id!, event.target.value)
-                      }
-                    />
-                    <div className="comment-composer__actions">
-                      <button
-                        className="button button--primary"
-                        type="button"
-                        onClick={() => handleCommentSubmit(task.id!)}
-                        disabled={submittingCommentTaskId === task.id}
-                      >
-                        {submittingCommentTaskId === task.id
-                          ? 'Speichere Kommentar...'
-                          : editingCommentId
-                            ? 'Kommentar speichern'
-                            : 'Kommentar erstellen'}
-                      </button>
-                      {editingCommentId ? (
-                        <button
-                          className="button button--ghost"
-                          type="button"
-                          onClick={() => cancelCommentEdit(task.id!)}
-                        >
-                          Abbrechen
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </article>
+            <ProjectTaskItem
+              key={task.id ?? task.title}
+              task={task}
+              members={members}
+              statusUpdatingTaskId={statusUpdatingTaskId}
+              assignmentUpdatingTaskId={assignmentUpdatingTaskId}
+              onStatusChange={handleStatusChange}
+              onAssignmentChange={handleAssignmentChange}
+              onEditTask={openEditForm}
+            />
           ))}
         </div>
       ) : null}
     </section>
   )
-}
-
-function formatStatus(status?: string) {
-  switch (status) {
-    case 'TODO':
-      return 'To do'
-    case 'IN_PROGRESS':
-      return 'In progress'
-    case 'IN_REVIEW':
-      return 'In review'
-    case 'DONE':
-      return 'Done'
-    default:
-      return 'Unbekannt'
-  }
-}
-
-function formatPriority(priority?: string) {
-  switch (priority) {
-    case 'LOW':
-      return 'Low'
-    case 'MEDIUM':
-      return 'Medium'
-    case 'HIGH':
-      return 'High'
-    case 'URGENT':
-      return 'Urgent'
-    default:
-      return 'Ohne Priorität'
-  }
-}
-
-function normalizeToken(value?: string) {
-  return value?.toLowerCase().replaceAll('_', '-') ?? 'unknown'
-}
-
-function normalizeTaskPriority(priority?: string): NonNullable<CreateTaskRequest['priority']> {
-  if (
-    priority === 'LOW' ||
-    priority === 'MEDIUM' ||
-    priority === 'HIGH' ||
-    priority === 'URGENT'
-  ) {
-    return priority
-  }
-
-  return 'MEDIUM'
-}
-
-function normalizeTaskStatus(status?: string): TaskStatus {
-  if (
-    status === 'TODO' ||
-    status === 'IN_PROGRESS' ||
-    status === 'IN_REVIEW' ||
-    status === 'DONE'
-  ) {
-    return status
-  }
-
-  return 'TODO'
-}
-
-function normalizeDateInput(value?: string) {
-  if (!value) {
-    return ''
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-  return localDate.toISOString().slice(0, 16)
 }

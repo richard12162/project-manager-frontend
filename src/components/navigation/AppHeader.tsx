@@ -1,14 +1,14 @@
-import { useNavigate } from 'react-router-dom'
-import { ShellNavLink } from '../../layouts/AppShell'
-import { useAuth } from '../../hooks/useAuth'
+import { useNavigate } from "react-router-dom";
+import { ShellNavLink } from "../../layouts/AppShell";
+import { useAuth } from "../../hooks/useAuth";
 
 export function AppHeader() {
-  const navigate = useNavigate()
-  const { currentUser, logout } = useAuth()
+  const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
 
   function handleLogout() {
-    logout()
-    navigate('/login')
+    logout();
+    navigate("/login");
   }
 
   return (
@@ -23,17 +23,22 @@ export function AppHeader() {
         </div>
 
         <nav className="topbar__nav" aria-label="Hauptnavigation">
+          <ShellNavLink to="/tasks">Aufgaben</ShellNavLink>
           <ShellNavLink to="/projects">Projekte</ShellNavLink>
           {currentUser?.email ? (
             <span className="topbar__user" title={currentUser.email}>
               {currentUser.email}
             </span>
           ) : null}
-          <button className="button button--ghost" type="button" onClick={handleLogout}>
+          <button
+            className="button button--ghost"
+            type="button"
+            onClick={handleLogout}
+          >
             Abmelden
           </button>
         </nav>
       </div>
     </header>
-  )
+  );
 }

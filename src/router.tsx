@@ -12,6 +12,7 @@ import { ProjectMembersPage } from './pages/projects/ProjectMembersPage'
 import { ProjectTasksPage } from './pages/projects/ProjectTasksPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { ProjectsPage } from './pages/projects/ProjectsPage'
+import { TaskPage } from './pages/tasks/TaskPage'
 
 export const router = createBrowserRouter([
   {
@@ -69,6 +70,10 @@ export const router = createBrowserRouter([
                 element: <ProjectActivityPage />,
               },
             ],
+          },
+          {
+              path: 'tasks',
+              element: <TaskPage />,
           },
         ],
       },
