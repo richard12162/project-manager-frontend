@@ -20,6 +20,8 @@ export function TaskPage() {
       setIsLoading(true)
       setError(null)
 
+      // projectName comes directly from the task DTO, so this page no longer
+      // needs a second request to /projects.
       setTasks(await getMyTasks(token))
     } catch (loadError) {
       setError(getErrorMessage(loadError, 'Deine Aufgaben konnten nicht geladen werden.'))
@@ -63,6 +65,7 @@ export function TaskPage() {
 
       {!isLoading && !error && tasks.length > 0 ? (
         <div className="task-list" aria-label="Meine Aufgaben">
+          {/* The card stays generic on purpose, while page-specific UI comes through context/actions. */}
           {tasks.map((task) => (
             <TaskCard
               key={task.id ?? task.title}

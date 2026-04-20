@@ -20,6 +20,7 @@ export function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Create form state stays in the page because the result updates the list directly.
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createValues, setCreateValues] = useState<CreateProjectRequest>(EMPTY_CREATE_VALUES)
   const [createErrors, setCreateErrors] = useState<Partial<Record<keyof CreateProjectRequest, string>>>({})
@@ -31,6 +32,7 @@ export function ProjectsPage() {
       return
     }
 
+    // The same loader is reused for the initial load and the retry action.
     setIsLoading(true)
     setError(null)
 
@@ -62,6 +64,7 @@ export function ProjectsPage() {
     field: keyof CreateProjectRequest,
     value: string,
   ) {
+    // Field-level errors are cleared as soon as the user edits the affected input.
     setCreateError(null)
     setCreateValues((current) => ({
       ...current,
@@ -77,6 +80,7 @@ export function ProjectsPage() {
   function validateCreateForm(values: CreateProjectRequest) {
     const nextErrors: Partial<Record<keyof CreateProjectRequest, string>> = {}
 
+    // Validation stays local to this page because it only belongs to this form.
     if (!values.name.trim()) {
       nextErrors.name = 'Bitte gib einen Projektnamen ein.'
     } else if (values.name.trim().length < 3) {
@@ -114,6 +118,7 @@ export function ProjectsPage() {
     try {
       setIsCreating(true)
       const createdProject = await createProject(token, payload)
+      // New projects are inserted locally so the page does not need a full reload.
       setProjects((current) => [createdProject, ...current])
       setCreateValues(EMPTY_CREATE_VALUES)
       setCreateErrors({})
@@ -154,6 +159,7 @@ export function ProjectsPage() {
 
       <div className="projects-layout">
         <div className="projects-content">
+          {/* The create form is rendered inline so list and form stay in one flow. */}
           {isCreateOpen ? (
             <ProjectCreateForm
               createValues={createValues}

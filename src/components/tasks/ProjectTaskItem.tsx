@@ -34,6 +34,8 @@ export function ProjectTaskItem({
 }: ProjectTaskItemProps) {
   const { token } = useAuth()
   const taskId = task.id
+  // Comment UI state stays local to each task item so the page does not need
+  // to manage expand/collapse, draft text, or comment editing for every row.
   const [isExpanded, setIsExpanded] = useState(false)
   const [comments, setComments] = useState<CommentResponse[]>([])
   const [commentDraft, setCommentDraft] = useState('')
@@ -56,6 +58,7 @@ export function ProjectTaskItem({
     setIsExpanded(true)
     setCommentError(null)
 
+    // Comments are loaded on first expand and then kept locally.
     if (comments.length > 0 || !token) {
       return
     }
@@ -81,6 +84,7 @@ export function ProjectTaskItem({
       return
     }
 
+    // Reuse the same draft input for create and edit.
     setEditingCommentId(comment.id)
     setCommentDraft(comment.content ?? '')
   }
@@ -109,6 +113,7 @@ export function ProjectTaskItem({
         const updatedComment = await updateTaskComment(token, editingCommentId, {
           content,
         })
+        // On edit, the existing comment is replaced locally instead of reloading the list.
         setComments((current) =>
           current.map((comment) =>
             comment.id === updatedComment.id ? updatedComment : comment,
@@ -116,6 +121,7 @@ export function ProjectTaskItem({
         )
       } else {
         const createdComment = await createTaskComment(token, taskId, { content })
+        // New comments are prepended so the latest activity is visible immediately.
         setComments((current) => [createdComment, ...current])
       }
 
@@ -139,6 +145,7 @@ export function ProjectTaskItem({
       setCommentError(null)
       setDeletingCommentId(commentId)
       await deleteTaskComment(token, commentId)
+      // Keep the current list consistent without fetching the full comment set again.
       setComments((current) => current.filter((comment) => comment.id !== commentId))
       if (editingCommentId === commentId) {
         setEditingCommentId(null)

@@ -39,6 +39,7 @@ export async function apiRequest<TResponse>(
   })
 
   if (!response.ok) {
+    // Error details can arrive either as JSON or plain text, depending on the endpoint.
     let message = 'Die Anfrage konnte nicht verarbeitet werden.'
 
     try {
@@ -61,6 +62,7 @@ export async function apiRequest<TResponse>(
   }
 
   const contentLength = response.headers.get('content-length')
+  // Some endpoints return 200 without a body instead of 204.
   if (contentLength === '0') {
     return undefined as TResponse
   }

@@ -88,6 +88,7 @@ export function ProjectDetailPage() {
       </div>
 
       <div className="project-detail__tabs" role="tablist" aria-label="Projektbereiche">
+        {/* Child routes read the same project from the outlet context instead of loading it again. */}
         <ProjectTabLink to="tasks">Aufgaben</ProjectTabLink>
         <ProjectTabLink to="members">Mitglieder</ProjectTabLink>
         <ProjectTabLink to="activity">Aktivität</ProjectTabLink>

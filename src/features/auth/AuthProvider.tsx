@@ -21,6 +21,8 @@ type AuthProviderProps = {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  // Auth state is kept here so routing and pages can stay mostly unaware of
+  // token persistence and session bootstrap details.
   const [token, setToken] = useState<string | null>(getStoredAuthToken())
   const [currentUser, setCurrentUser] = useState<CurrentUserResponse | null>(null)
   const [isBootstrapping, setIsBootstrapping] = useState(Boolean(token))
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     const sessionToken = token
+    // Prevents stale requests from updating state after logout or token changes.
     let cancelled = false
 
     async function bootstrapSession() {
@@ -52,6 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return
         }
 
+        // An invalid or expired token should clear the persisted session immediately.
         clearStoredAuthToken()
         setToken(null)
         setCurrentUser(null)
@@ -79,6 +83,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     storeAuthToken(auth.token)
     setToken(auth.token)
 
+    // Load the user profile immediately after login so the app does not have to
+    // wait for the bootstrap effect.
     const user = await getCurrentUser(auth.token)
     setCurrentUser(user)
   }
@@ -89,6 +95,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   function logout() {
+    // Logout is purely local because the backend uses stateless JWT authentication.
     clearStoredAuthToken()
     setToken(null)
     setCurrentUser(null)

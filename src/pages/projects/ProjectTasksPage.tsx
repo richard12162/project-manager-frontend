@@ -42,6 +42,8 @@ type FormMode = 'closed' | 'create' | 'edit'
 export function ProjectTasksPage() {
   const { token } = useAuth()
   const { project } = useOutletContext<{ project: ProjectResponse }>()
+  // Page-level state owns task data, filters, and form state. Per-task comment
+  // state lives inside ProjectTaskItem to keep this file flatter.
   const [members, setMembers] = useState<ProjectMemberResponse[]>([])
   const [tasks, setTasks] = useState<TaskResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -66,6 +68,7 @@ export function ProjectTasksPage() {
       const nextMembers = await getProjectMembers(token, project.id)
       setMembers(nextMembers)
     } catch {
+      // Member loading is not critical enough to block the full page.
       setMembers([])
     }
   })
@@ -83,6 +86,8 @@ export function ProjectTasksPage() {
       setIsLoading(true)
       setError(null)
 
+      // Filters are forwarded to the backend so the page does not need its own
+      // client-side filtering over already loaded tasks.
       const response = await getProjectTasks(token, project.id, {
         status: statusFilter === 'ALL' ? undefined : statusFilter,
         priority: priorityFilter === 'ALL' ? undefined : priorityFilter,
@@ -103,6 +108,7 @@ export function ProjectTasksPage() {
   }, [priorityFilter, project.id, statusFilter, token])
 
   function handleFormChange(field: keyof TaskFormValues, value: string) {
+    // Clear field-specific errors as soon as the user changes the input again.
     setFormError(null)
     setFormValues((current) => ({
       ...current,
@@ -123,6 +129,7 @@ export function ProjectTasksPage() {
   }
 
   function openEditForm(task: TaskResponse) {
+    // The edit form is prefilled from the selected task instead of reloading it.
     setEditingTaskId(task.id ?? null)
     setFormMode('edit')
     setFormError(null)
@@ -184,11 +191,14 @@ export function ProjectTasksPage() {
     try {
       setIsSubmitting(true)
 
+      // Create and edit intentionally share the same submit flow and only differ
+      // by the presence of editingTaskId.
       const savedTask = editingTaskId
         ? await updateProjectTask(token, editingTaskId, payload)
         : await createProjectTask(token, project.id, payload)
 
       setTasks((current) => {
+        // Keep the visible list in sync locally after create or edit.
         if (editingTaskId) {
           return current.map((task) => (task.id === savedTask.id ? savedTask : task))
         }
@@ -211,6 +221,7 @@ export function ProjectTasksPage() {
       return
     }
 
+    // A single pending marker keeps status and assignment loading states simple.
     setTaskActionError(null)
     setPendingTaskAction(`status:${taskId}`)
 

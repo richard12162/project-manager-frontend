@@ -11,6 +11,7 @@ type TaskCardProps = {
 }
 
 export function TaskCard({ task, context, controls, actions, details }: TaskCardProps) {
+  // "Unknown" should not appear as its own meta field in the UI.
   const dueDateLabel = formatOptionalDateTime(task.dueDate)
 
   return (
@@ -89,6 +90,7 @@ function formatTaskPriority(priority?: string) {
 }
 
 function normalizeTaskToken(value?: string) {
+  // CSS classes expect tokens like "in-progress" instead of "IN_PROGRESS".
   return value?.toLowerCase().replaceAll('_', '-') ?? 'unknown'
 }
 
