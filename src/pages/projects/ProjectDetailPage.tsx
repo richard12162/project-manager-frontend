@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet, useParams } from 'react-router-dom'
-import { ApiError } from '../../api/client'
+import { getErrorMessage } from '../../api/client'
 import { getProjectById, type ProjectResponse } from '../../api/projects'
 import { useAuth } from '../../hooks/useAuth'
 import { formatDateTime } from '../../utils/date'
@@ -12,75 +12,30 @@ export function ProjectDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadProject = useCallback(async () => {
     if (!token || !projectId) {
       return
     }
 
-    const sessionToken = token
-    const currentProjectId = projectId
-    let cancelled = false
+    try {
+      setIsLoading(true)
+      setError(null)
 
-    async function loadProject() {
-      try {
-        setIsLoading(true)
-        setError(null)
-
-        const nextProject = await getProjectById(sessionToken, currentProjectId)
-
-        if (cancelled) {
-          return
-        }
-
-        setProject(nextProject)
-      } catch (loadError) {
-        if (cancelled) {
-          return
-        }
-
-        if (loadError instanceof ApiError) {
-          setError(loadError.message)
-        } else {
-          setError('Das Projekt konnte nicht geladen werden.')
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void loadProject()
-
-    return () => {
-      cancelled = true
+      const nextProject = await getProjectById(token, projectId)
+      setProject(nextProject)
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, 'Das Projekt konnte nicht geladen werden.'))
+    } finally {
+      setIsLoading(false)
     }
   }, [projectId, token])
 
+  useEffect(() => {
+    void loadProject()
+  }, [loadProject])
+
   function handleRetry() {
-    if (!token || !projectId) {
-      return
-    }
-
-    const sessionToken = token
-    const currentProjectId = projectId
-    setIsLoading(true)
-    setError(null)
-
-    void getProjectById(sessionToken, currentProjectId)
-      .then((nextProject) => {
-        setProject(nextProject)
-      })
-      .catch((loadError: unknown) => {
-        if (loadError instanceof ApiError) {
-          setError(loadError.message)
-        } else {
-          setError('Das Projekt konnte nicht geladen werden.')
-        }
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
+    void loadProject()
   }
 
   if (isLoading) {

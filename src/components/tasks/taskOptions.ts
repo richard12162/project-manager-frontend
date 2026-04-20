@@ -2,7 +2,7 @@ import type {
   CreateTaskRequest,
   TaskPriority,
   TaskStatus,
-} from '../../api/projects'
+} from '../../api/tasks'
 
 export const STATUS_OPTIONS: Array<{ label: string; value: TaskStatus | 'ALL' }> = [
   { label: 'Beliebig', value: 'ALL' },

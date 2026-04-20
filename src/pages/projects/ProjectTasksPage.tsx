@@ -1,21 +1,23 @@
 import type { FormEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { ApiError } from '../../api/client'
+import { getErrorMessage } from '../../api/client'
 import {
-  createProjectTask,
   getProjectMembers,
-  getProjectTasks,
-  type CreateTaskRequest,
   type ProjectMemberResponse,
   type ProjectResponse,
+} from '../../api/projects'
+import {
+  createProjectTask,
+  getProjectTasks,
+  type CreateTaskRequest,
   type TaskPriority,
   type TaskResponse,
   type TaskStatus,
   updateProjectTask,
   updateProjectTaskAssignment,
   updateProjectTaskStatus,
-} from '../../api/projects'
+} from '../../api/tasks'
 import { ProjectTaskForm } from '../../components/tasks/ProjectTaskForm'
 import { ProjectTaskItem } from '../../components/tasks/ProjectTaskItem'
 import {
@@ -55,82 +57,49 @@ export function ProjectTasksPage() {
   const [taskActionError, setTaskActionError] = useState<string | null>(null)
   const [pendingTaskAction, setPendingTaskAction] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadMembers = useEffectEvent(async () => {
     if (!token || !project.id) {
       return
     }
 
-    const sessionToken = token
-    const currentProjectId = project.id
-    let cancelled = false
-
-    async function loadMembers() {
-      try {
-        const nextMembers = await getProjectMembers(sessionToken, currentProjectId)
-
-        if (!cancelled) {
-          setMembers(nextMembers)
-        }
-      } catch {
-        if (!cancelled) {
-          setMembers([])
-        }
-      }
+    try {
+      const nextMembers = await getProjectMembers(token, project.id)
+      setMembers(nextMembers)
+    } catch {
+      setMembers([])
     }
+  })
 
+  useEffect(() => {
     void loadMembers()
-
-    return () => {
-      cancelled = true
-    }
   }, [project.id, token])
 
-  useEffect(() => {
+  const loadTasks = useEffectEvent(async () => {
     if (!token || !project.id) {
       return
     }
 
-    const sessionToken = token
-    const currentProjectId = project.id
-    let cancelled = false
+    try {
+      setIsLoading(true)
+      setError(null)
 
-    async function loadTasks() {
-      try {
-        setIsLoading(true)
-        setError(null)
+      const response = await getProjectTasks(token, project.id, {
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        priority: priorityFilter === 'ALL' ? undefined : priorityFilter,
+        size: 50,
+        sort: 'updatedAt,desc',
+      })
 
-        const response = await getProjectTasks(sessionToken, currentProjectId, {
-          status: statusFilter === 'ALL' ? undefined : statusFilter,
-          priority: priorityFilter === 'ALL' ? undefined : priorityFilter,
-          size: 50,
-          sort: 'updatedAt,desc',
-        })
-
-        if (!cancelled) {
-          setTasks(response.content ?? [])
-        }
-      } catch (loadError) {
-        if (cancelled) {
-          return
-        }
-
-        if (loadError instanceof ApiError) {
-          setError(loadError.message)
-        } else {
-          setError('Die Tasks konnten nicht geladen werden.')
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
+      setTasks(response.content ?? [])
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, 'Die Tasks konnten nicht geladen werden.'))
+    } finally {
+      setIsLoading(false)
     }
+  })
 
+  useEffect(() => {
     void loadTasks()
-
-    return () => {
-      cancelled = true
-    }
   }, [priorityFilter, project.id, statusFilter, token])
 
   function handleFormChange(field: keyof TaskFormValues, value: string) {
@@ -229,11 +198,9 @@ export function ProjectTasksPage() {
 
       closeForm()
     } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
-        setFormError(submissionError.message)
-      } else {
-        setFormError('Die Task konnte nicht gespeichert werden.')
-      }
+      setFormError(
+        getErrorMessage(submissionError, 'Die Task konnte nicht gespeichert werden.'),
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -253,11 +220,9 @@ export function ProjectTasksPage() {
         current.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
       )
     } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
-        setTaskActionError(submissionError.message)
-      } else {
-        setTaskActionError('Der Status konnte nicht aktualisiert werden.')
-      }
+      setTaskActionError(
+        getErrorMessage(submissionError, 'Der Status konnte nicht aktualisiert werden.'),
+      )
     } finally {
       setPendingTaskAction(null)
     }
@@ -279,11 +244,12 @@ export function ProjectTasksPage() {
         current.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
       )
     } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
-        setTaskActionError(submissionError.message)
-      } else {
-        setTaskActionError('Die Zuweisung konnte nicht aktualisiert werden.')
-      }
+      setTaskActionError(
+        getErrorMessage(
+          submissionError,
+          'Die Zuweisung konnte nicht aktualisiert werden.',
+        ),
+      )
     } finally {
       setPendingTaskAction(null)
     }

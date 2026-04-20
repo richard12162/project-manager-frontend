@@ -1,15 +1,15 @@
 import { useState } from 'react'
-import { ApiError } from '../../api/client'
+import { getErrorMessage } from '../../api/client'
 import {
   createTaskComment,
   deleteTaskComment,
   getTaskComments,
   type CommentResponse,
-  type ProjectMemberResponse,
   type TaskResponse,
   type TaskStatus,
   updateTaskComment,
-} from '../../api/projects'
+} from '../../api/tasks'
+import type { ProjectMemberResponse } from '../../api/projects'
 import { useAuth } from '../../hooks/useAuth'
 import { TaskCard } from './TaskCard'
 import { TaskCommentsPanel } from './TaskCommentsPanel'
@@ -65,11 +65,7 @@ export function ProjectTaskItem({
       const nextComments = await getTaskComments(token, taskId)
       setComments(nextComments)
     } catch (loadError) {
-      if (loadError instanceof ApiError) {
-        setCommentError(loadError.message)
-      } else {
-        setCommentError('Die Kommentare konnten nicht geladen werden.')
-      }
+      setCommentError(getErrorMessage(loadError, 'Die Kommentare konnten nicht geladen werden.'))
     } finally {
       setIsLoadingComments(false)
     }
@@ -126,11 +122,9 @@ export function ProjectTaskItem({
       setCommentDraft('')
       setEditingCommentId(null)
     } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
-        setCommentError(submissionError.message)
-      } else {
-        setCommentError('Der Kommentar konnte nicht gespeichert werden.')
-      }
+      setCommentError(
+        getErrorMessage(submissionError, 'Der Kommentar konnte nicht gespeichert werden.'),
+      )
     } finally {
       setIsSubmittingComment(false)
     }
@@ -151,11 +145,9 @@ export function ProjectTaskItem({
         setCommentDraft('')
       }
     } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
-        setCommentError(submissionError.message)
-      } else {
-        setCommentError('Der Kommentar konnte nicht geloescht werden.')
-      }
+      setCommentError(
+        getErrorMessage(submissionError, 'Der Kommentar konnte nicht geloescht werden.'),
+      )
     } finally {
       setDeletingCommentId(null)
     }

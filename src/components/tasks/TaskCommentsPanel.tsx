@@ -1,4 +1,4 @@
-import type { CommentResponse } from '../../api/projects'
+import type { CommentResponse } from '../../api/tasks'
 import { formatDateTime } from '../../utils/date'
 
 type TaskCommentsPanelProps = {

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { ApiError } from '../../api/client'
+import { useCallback, useEffect, useState } from 'react'
+import { getErrorMessage } from '../../api/client'
 import {
   createProject,
   getMyProjects,
@@ -10,87 +10,52 @@ import { ProjectCreateForm } from '../../components/projects/ProjectCreateForm'
 import { ProjectListItem } from '../../components/projects/ProjectListItem'
 import { useAuth } from '../../hooks/useAuth'
 
+const EMPTY_CREATE_VALUES: CreateProjectRequest = {
+  name: '',
+  description: '',
+}
+
 export function ProjectsPage() {
   const { token, currentUser } = useAuth()
   const [projects, setProjects] = useState<ProjectResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [createValues, setCreateValues] = useState<CreateProjectRequest>({
-    name: '',
-    description: '',
-  })
+  const [createValues, setCreateValues] = useState<CreateProjectRequest>(EMPTY_CREATE_VALUES)
   const [createErrors, setCreateErrors] = useState<Partial<Record<keyof CreateProjectRequest, string>>>({})
   const [createError, setCreateError] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
 
-  useEffect(() => {
+  const loadProjects = useCallback(async () => {
     if (!token) {
       return
     }
 
-    const sessionToken = token
-    let cancelled = false
-
-    async function loadProjects() {
-      try {
-        setIsLoading(true)
-        setError(null)
-
-        const nextProjects = await getMyProjects(sessionToken)
-
-        if (cancelled) {
-          return
-        }
-
-        setProjects(nextProjects)
-      } catch (loadError) {
-        if (cancelled) {
-          return
-        }
-
-        if (loadError instanceof ApiError) {
-          setError(loadError.message)
-        } else {
-          setError('Die Projekte konnten nicht geladen werden.')
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void loadProjects()
-
-    return () => {
-      cancelled = true
-    }
-  }, [token])
-
-  function handleRetry() {
-    if (!token) {
-      return
-    }
-
-    const sessionToken = token
     setIsLoading(true)
     setError(null)
 
-    void getMyProjects(sessionToken)
-      .then((nextProjects) => {
-        setProjects(nextProjects)
-      })
-      .catch((loadError: unknown) => {
-        if (loadError instanceof ApiError) {
-          setError(loadError.message)
-        } else {
-          setError('Die Projekte konnten nicht geladen werden.')
-        }
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
+    try {
+      const nextProjects = await getMyProjects(token)
+      setProjects(nextProjects)
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, 'Die Projekte konnten nicht geladen werden.'))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [token])
+
+  function closeCreateForm() {
+    setIsCreateOpen(false)
+    setCreateError(null)
+    setCreateErrors({})
+  }
+
+  useEffect(() => {
+    void loadProjects()
+  }, [loadProjects])
+
+  function handleRetry() {
+    void loadProjects()
   }
 
   function handleCreateChange(
@@ -150,18 +115,13 @@ export function ProjectsPage() {
       setIsCreating(true)
       const createdProject = await createProject(token, payload)
       setProjects((current) => [createdProject, ...current])
-      setCreateValues({
-        name: '',
-        description: '',
-      })
+      setCreateValues(EMPTY_CREATE_VALUES)
       setCreateErrors({})
-      setIsCreateOpen(false)
+      closeCreateForm()
     } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
-        setCreateError(submissionError.message)
-      } else {
-        setCreateError('Das Projekt konnte nicht erstellt werden.')
-      }
+      setCreateError(
+        getErrorMessage(submissionError, 'Das Projekt konnte nicht erstellt werden.'),
+      )
     } finally {
       setIsCreating(false)
     }
@@ -202,11 +162,7 @@ export function ProjectsPage() {
               isCreating={isCreating}
               onSubmit={handleCreateSubmit}
               onChange={handleCreateChange}
-              onCancel={() => {
-                setIsCreateOpen(false)
-                setCreateError(null)
-                setCreateErrors({})
-              }}
+              onCancel={closeCreateForm}
             />
           ) : null}
 

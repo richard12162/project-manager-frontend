@@ -8,6 +8,10 @@ export class ApiError extends Error {
   }
 }
 
+export function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof ApiError ? error.message : fallback
+}
+
 const DEFAULT_API_URL = 'http://localhost:8080'
 
 function buildUrl(path: string) {

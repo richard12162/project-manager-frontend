@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { ApiError } from '../../api/client'
+import { getErrorMessage } from '../../api/client'
 import {
   addProjectMember,
   getProjectMembers,
@@ -22,49 +22,26 @@ export function ProjectMembersPage() {
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
+  const loadMembers = useEffectEvent(async () => {
     if (!token || !project.id) {
       return
     }
 
-    const sessionToken = token
-    const currentProjectId = project.id
-    let cancelled = false
+    try {
+      setIsLoading(true)
+      setError(null)
 
-    async function loadMembers() {
-      try {
-        setIsLoading(true)
-        setError(null)
-
-        const nextMembers = await getProjectMembers(sessionToken, currentProjectId)
-
-        if (cancelled) {
-          return
-        }
-
-        setMembers(nextMembers)
-      } catch (loadError) {
-        if (cancelled) {
-          return
-        }
-
-        if (loadError instanceof ApiError) {
-          setError(loadError.message)
-        } else {
-          setError('Die Mitglieder konnten nicht geladen werden.')
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
+      const nextMembers = await getProjectMembers(token, project.id)
+      setMembers(nextMembers)
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, 'Die Mitglieder konnten nicht geladen werden.'))
+    } finally {
+      setIsLoading(false)
     }
+  })
 
+  useEffect(() => {
     void loadMembers()
-
-    return () => {
-      cancelled = true
-    }
   }, [project.id, token])
 
   function validateEmail(value: string) {
@@ -120,11 +97,9 @@ export function ProjectMembersPage() {
       setFormError(null)
       setFormSuccess('Mitglied wurde zum Projekt hinzugefügt.')
     } catch (submitError) {
-      if (submitError instanceof ApiError) {
-        setFormError(submitError.message)
-      } else {
-        setFormError('Das Mitglied konnte nicht hinzugefügt werden.')
-      }
+      setFormError(
+        getErrorMessage(submitError, 'Das Mitglied konnte nicht hinzugefügt werden.'),
+      )
       setFormSuccess(null)
     } finally {
       setIsSubmitting(false)

@@ -1,70 +1,35 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ApiError } from '../../api/client'
-import { getMyProjects, type ProjectResponse, type TaskResponse } from '../../api/projects'
-import { getMyTasks } from '../../api/tasks'
+import { getErrorMessage } from '../../api/client'
+import { getMyTasks, type TaskResponse } from '../../api/tasks'
 import { TaskCard } from '../../components/tasks/TaskCard'
 import { useAuth } from '../../hooks/useAuth'
 
 export function TaskPage() {
   const { token } = useAuth()
   const [tasks, setTasks] = useState<TaskResponse[]>([])
-  const [projectsById, setProjectsById] = useState<Record<string, ProjectResponse>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadTasks = useEffectEvent(async () => {
     if (!token) {
       return
     }
 
-    const sessionToken = token
-    let cancelled = false
+    try {
+      setIsLoading(true)
+      setError(null)
 
-    async function loadTasks() {
-      try {
-        setIsLoading(true)
-        setError(null)
-
-        const [taskResponse, projectResponse] = await Promise.all([
-          getMyTasks(sessionToken),
-          getMyProjects(sessionToken),
-        ])
-
-        if (cancelled) {
-          return
-        }
-
-        setTasks(taskResponse)
-        setProjectsById(
-          Object.fromEntries(
-            projectResponse
-              .filter((project) => project.id)
-              .map((project) => [project.id!, project]),
-          ),
-        )
-      } catch (loadError) {
-        if (cancelled) {
-          return
-        }
-
-        if (loadError instanceof ApiError) {
-          setError(loadError.message)
-        } else {
-          setError('Deine Aufgaben konnten nicht geladen werden.')
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
+      setTasks(await getMyTasks(token))
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, 'Deine Aufgaben konnten nicht geladen werden.'))
+    } finally {
+      setIsLoading(false)
     }
+  })
 
+  useEffect(() => {
     void loadTasks()
-
-    return () => {
-      cancelled = true
-    }
   }, [token])
 
   return (
@@ -104,12 +69,7 @@ export function TaskPage() {
               task={task}
               context={
                 <p>
-                  Projekt:{' '}
-                  <strong>
-                    {task.projectId
-                      ? projectsById[task.projectId]?.name ?? 'Unbekanntes Projekt'
-                      : 'Unbekanntes Projekt'}
-                  </strong>
+                  Projekt: <strong>{task.projectName ?? 'Unbekanntes Projekt'}</strong>
                 </p>
               }
               actions={

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { ApiError } from '../../api/client'
+import { getErrorMessage } from '../../api/client'
 import {
   getProjectActivity,
   type ActivityLogResponse,
@@ -16,49 +16,26 @@ export function ProjectActivityPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadActivity = useEffectEvent(async () => {
     if (!token || !project.id) {
       return
     }
 
-    const sessionToken = token
-    const currentProjectId = project.id
-    let cancelled = false
+    try {
+      setIsLoading(true)
+      setError(null)
 
-    async function loadActivity() {
-      try {
-        setIsLoading(true)
-        setError(null)
-
-        const nextEntries = await getProjectActivity(sessionToken, currentProjectId)
-
-        if (cancelled) {
-          return
-        }
-
-        setEntries(nextEntries)
-      } catch (loadError) {
-        if (cancelled) {
-          return
-        }
-
-        if (loadError instanceof ApiError) {
-          setError(loadError.message)
-        } else {
-          setError('Die Aktivitaet konnte nicht geladen werden.')
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
+      const nextEntries = await getProjectActivity(token, project.id)
+      setEntries(nextEntries)
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, 'Die Aktivitaet konnte nicht geladen werden.'))
+    } finally {
+      setIsLoading(false)
     }
+  })
 
+  useEffect(() => {
     void loadActivity()
-
-    return () => {
-      cancelled = true
-    }
   }, [project.id, token])
 
   return (

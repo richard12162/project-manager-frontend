@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { TaskResponse } from '../../api/projects'
+import type { TaskResponse } from '../../api/tasks'
 import { formatDateTime } from '../../utils/date'
 
 type TaskCardProps = {
@@ -58,7 +58,7 @@ export function TaskCard({ task, context, controls, actions, details }: TaskCard
   )
 }
 
-export function formatTaskStatus(status?: string) {
+function formatTaskStatus(status?: string) {
   switch (status) {
     case 'TODO':
       return 'To do'
@@ -73,7 +73,7 @@ export function formatTaskStatus(status?: string) {
   }
 }
 
-export function formatTaskPriority(priority?: string) {
+function formatTaskPriority(priority?: string) {
   switch (priority) {
     case 'LOW':
       return 'Low'
@@ -88,7 +88,7 @@ export function formatTaskPriority(priority?: string) {
   }
 }
 
-export function normalizeTaskToken(value?: string) {
+function normalizeTaskToken(value?: string) {
   return value?.toLowerCase().replaceAll('_', '-') ?? 'unknown'
 }
 
