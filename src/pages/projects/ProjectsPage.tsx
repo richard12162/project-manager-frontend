@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ApiError } from '../../api/client'
 import {
   createProject,
@@ -7,8 +6,9 @@ import {
   type CreateProjectRequest,
   type ProjectResponse,
 } from '../../api/projects'
+import { ProjectCreateForm } from '../../components/projects/ProjectCreateForm'
+import { ProjectListItem } from '../../components/projects/ProjectListItem'
 import { useAuth } from '../../hooks/useAuth'
-import { formatDateTime } from '../../utils/date'
 
 export function ProjectsPage() {
   const { token, currentUser } = useAuth()
@@ -195,76 +195,19 @@ export function ProjectsPage() {
       <div className="projects-layout">
         <div className="projects-content">
           {isCreateOpen ? (
-            <form className="project-create-form" noValidate onSubmit={handleCreateSubmit}>
-              <div className={`field${createErrors.name ? ' field--invalid' : ''}`}>
-                <label htmlFor="project-name">Projektname</label>
-                <input
-                  id="project-name"
-                  name="name"
-                  type="text"
-                  placeholder="z. B. Website Relaunch"
-                  value={createValues.name}
-                  onChange={(event) =>
-                    handleCreateChange('name', event.target.value)
-                  }
-                  aria-invalid={Boolean(createErrors.name)}
-                />
-                {createErrors.name ? (
-                  <span className="field__error" role="alert">
-                    {createErrors.name}
-                  </span>
-                ) : null}
-              </div>
-
-              <div
-                className={`field${createErrors.description ? ' field--invalid' : ''}`}
-              >
-                <label htmlFor="project-description">Beschreibung</label>
-                <textarea
-                  id="project-description"
-                  name="description"
-                  rows={4}
-                  placeholder="Kurz beschreiben, worum es in diesem Projekt geht."
-                  value={createValues.description ?? ''}
-                  onChange={(event) =>
-                    handleCreateChange('description', event.target.value)
-                  }
-                  aria-invalid={Boolean(createErrors.description)}
-                />
-                <span className="field__hint">
-                  Optional, aber hilfreich für den ersten gemeinsamen Kontext.
-                </span>
-                {createErrors.description ? (
-                  <span className="field__error" role="alert">
-                    {createErrors.description}
-                  </span>
-                ) : null}
-              </div>
-
-              {createError ? (
-                <div className="form-feedback form-feedback--error" role="alert">
-                  {createError}
-                </div>
-              ) : null}
-
-              <div className="project-create-actions">
-                <button className="button button--primary" type="submit" disabled={isCreating}>
-                  {isCreating ? 'Erstelle Projekt...' : 'Projekt erstellen'}
-                </button>
-                <button
-                  className="button button--ghost"
-                  type="button"
-                  onClick={() => {
-                    setIsCreateOpen(false)
-                    setCreateError(null)
-                    setCreateErrors({})
-                  }}
-                  disabled={isCreating}
-                >
-                  Abbrechen
-                </button>
-              </div>
-            </form>
+            <ProjectCreateForm
+              createValues={createValues}
+              createErrors={createErrors}
+              createError={createError}
+              isCreating={isCreating}
+              onSubmit={handleCreateSubmit}
+              onChange={handleCreateChange}
+              onCancel={() => {
+                setIsCreateOpen(false)
+                setCreateError(null)
+                setCreateErrors({})
+              }}
+            />
           ) : null}
 
           {isLoading ? (
@@ -297,39 +240,7 @@ export function ProjectsPage() {
           {!isLoading && !error && projects.length > 0 ? (
             <div className="project-list" aria-label="Projektliste">
               {projects.map((project) => (
-                <article className="project-card" key={project.id ?? project.name}>
-                  <div className="project-card__header">
-                    <div>
-                      <h2>{project.name ?? 'Unbenanntes Projekt'}</h2>
-                      <p>{project.description?.trim() || 'Keine Beschreibung hinterlegt.'}</p>
-                    </div>
-                    <span className="project-card__owner">
-                      {project.ownerEmail ?? 'Kein Owner'}
-                    </span>
-                  </div>
-
-                  <dl className="project-card__meta">
-                    <div>
-                      <dt>Erstellt</dt>
-                      <dd>{formatDateTime(project.createdAt)}</dd>
-                    </div>
-                    <div>
-                      <dt>Zuletzt aktualisiert</dt>
-                      <dd>{formatDateTime(project.updatedAt)}</dd>
-                    </div>
-                  </dl>
-
-                  {project.id ? (
-                    <div className="project-card__actions">
-                      <Link
-                        className="button button--ghost"
-                        to={`/projects/${project.id}/tasks`}
-                      >
-                        Projekt öffnen
-                      </Link>
-                    </div>
-                  ) : null}
-                </article>
+                <ProjectListItem key={project.id ?? project.name} project={project} />
               ))}
             </div>
           ) : null}
